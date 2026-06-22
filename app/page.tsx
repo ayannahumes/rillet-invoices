@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { listInvoices, type PaymentStatus } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
@@ -36,23 +37,48 @@ function formatCurrencyTotals(totals: Map<string, number>): string {
     .join(" · ");
 }
 
-export default async function Home() {
+// Shimmer fallback for the body only (the header renders instantly). As an
+// in-page Suspense boundary this streams on the initial/hard load (and refresh)
+// but is preserved during client navigations, so returning to the list does
+// NOT re-show the skeleton. The `skeleton` class delays the reveal ~400ms so
+// fast loads don't flash it.
+function InvoiceListSkeleton() {
+  return (
+    <div className="skeleton">
+      <div className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
+        {[0, 1].map((i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-3 w-20 shimmer rounded" />
+            <div className="h-6 w-36 shimmer rounded" />
+          </div>
+        ))}
+      </div>
+      <div className="mt-10 overflow-hidden rounded-lg border border-line bg-surface">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-6 border-b border-line px-5 py-4 last:border-0"
+          >
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-40 shimmer rounded" />
+              <div className="h-3 w-24 shimmer rounded" />
+            </div>
+            <div className="h-4 w-16 shimmer rounded" />
+            <div className="h-4 w-32 shimmer rounded" />
+            <div className="h-4 w-24 shimmer rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function InvoiceListBody() {
   await maybeDelay(); // dev-only: SLOW_MS=2500 npm run start
   const invoices = await listInvoices();
 
   if (invoices.length === 0) {
-    return (
-      <main className="mx-auto flex min-h-[60vh] max-w-5xl flex-col items-center justify-center px-6 text-center">
-        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
-        <p className="mt-3 text-muted">No invoices yet.</p>
-        <Link
-          href="/invoices/new"
-          className="mt-6 rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
-        >
-          New invoice
-        </Link>
-      </main>
-    );
+    return <p className="mt-8 text-muted">No invoices yet.</p>;
   }
 
   // Fixed default order: triage priority (overdue → due-soon → active/ok →
@@ -80,17 +106,7 @@ export default async function Home() {
   );
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
-        <Link
-          href="/invoices/new"
-          className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
-        >
-          New invoice
-        </Link>
-      </div>
-
+    <>
       <section className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
         <div>
           <div className="text-xs uppercase tracking-wider text-faint">
@@ -160,6 +176,26 @@ export default async function Home() {
           </tbody>
         </table>
       </div>
+    </>
+  );
+}
+
+export default function Home() {
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
+        <Link
+          href="/invoices/new"
+          className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
+        >
+          New invoice
+        </Link>
+      </div>
+
+      <Suspense fallback={<InvoiceListSkeleton />}>
+        <InvoiceListBody />
+      </Suspense>
     </main>
   );
 }
