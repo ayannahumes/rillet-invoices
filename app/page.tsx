@@ -5,6 +5,7 @@ import {
 } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
+import { sortByTriage } from "@/lib/sortByTriage";
 
 // The seed data is authored around this date, so the crafted risk states
 // (overdue / due-soon / ok) show up. Swap for `new Date()` once data is live.
@@ -124,11 +125,15 @@ export default async function Home() {
     );
   }
 
-  const rows = invoices.map((invoice) => ({
-    invoice,
-    totals: calculateInvoiceTotal(invoice),
-    risk: getDueDateRisk(invoice, CURRENT_DATE),
-  }));
+  // Fixed default order: triage priority (overdue → due-soon → active/ok →
+  // paid → void), using each row's already-computed risk.
+  const rows = sortByTriage(
+    invoices.map((invoice) => ({
+      invoice,
+      totals: calculateInvoiceTotal(invoice),
+      risk: getDueDateRisk(invoice, CURRENT_DATE),
+    })),
+  );
 
   const outstanding = sumByCurrency(
     rows
