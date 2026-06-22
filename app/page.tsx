@@ -7,6 +7,7 @@ import { CURRENT_DATE } from "@/lib/currentDate";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
+import { InvoiceRow } from "@/components/InvoiceRow";
 
 // Always query per request — the invoices list is live data, and this is also
 // what lets a runtime DB failure surface to app/error.tsx instead of being
@@ -120,10 +121,7 @@ export default async function Home() {
           </thead>
           <tbody>
             {rows.map(({ invoice, totals, risk }) => (
-              <tr
-                key={invoice.id}
-                className="border-b border-line last:border-0 hover:bg-bg"
-              >
+              <InvoiceRow key={invoice.id} href={`/invoices/${invoice.id}`}>
                 <td className="px-5 py-4">
                   <Link
                     href={`/invoices/${invoice.id}`}
@@ -147,7 +145,7 @@ export default async function Home() {
                 <td className="px-5 py-4 text-muted">
                   {formatDate(invoice.updatedAt)}
                 </td>
-              </tr>
+              </InvoiceRow>
             ))}
           </tbody>
         </table>
