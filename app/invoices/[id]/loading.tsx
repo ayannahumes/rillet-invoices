@@ -2,7 +2,7 @@
 // an invoice shows the right layout while it loads — not the list skeleton.
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 md:px-8">
+    <main className="skeleton mx-auto max-w-3xl px-6 py-10 md:px-8">
       {/* back link */}
       <div className="h-4 w-24 shimmer rounded" />
 

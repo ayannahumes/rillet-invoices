@@ -2,7 +2,7 @@
 // the server component awaits the database — no spinner, per the thesis.
 export default function Loading() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
+    <main className="skeleton mx-auto max-w-5xl px-6 py-10 md:px-8">
       <div className="h-9 w-44 shimmer rounded" />
 
       <div className="mt-8 flex flex-wrap gap-x-16 gap-y-6">

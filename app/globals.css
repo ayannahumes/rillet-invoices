@@ -50,3 +50,17 @@ body {
     animation: none;
   }
 }
+
+/* Delay-before-show: keep the skeleton invisible for a beat so fast loads
+   (which resolve and unmount it first) never flash it on screen. Only genuinely
+   slow loads fade it in. */
+.skeleton {
+  opacity: 0;
+  animation: skeleton-reveal 0s linear 400ms forwards;
+}
+
+@keyframes skeleton-reveal {
+  to {
+    opacity: 1;
+  }
+}
