@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import {
   createInvoice,
   updateInvoice,
@@ -29,10 +28,13 @@ export interface InvoiceActionInput {
   lineItems: LineItem[];
 }
 
-export type FormActionResult = { errors: InvoiceFormErrors } | undefined;
-export type MutationResult = { error?: string };
+// Client handles navigation + toast based on the result (no server redirect).
+export type FormActionResult =
+  | { ok: true; id: string }
+  | { ok: false; errors: InvoiceFormErrors };
+export type MutationResult = { ok: true } | { ok: false; error: string };
 
-function createdEntry(action: string) {
+function entry(action: string) {
   return {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
@@ -45,17 +47,17 @@ export async function createInvoiceAction(
   input: InvoiceActionInput,
 ): Promise<FormActionResult> {
   const { valid, errors } = validateInvoiceForm(input);
-  if (!valid) return { errors };
+  if (!valid) return { ok: false, errors };
 
   const created = await createInvoice({
     ...input,
     status: "Draft",
     paymentStatus: "Unsent",
-    activity: [createdEntry("Created invoice")],
+    activity: [entry("Created invoice")],
   });
 
   revalidatePath("/");
-  redirect(`/invoices/${created.id}`);
+  return { ok: true, id: created.id };
 }
 
 export async function updateInvoiceAction(
@@ -63,32 +65,32 @@ export async function updateInvoiceAction(
   input: InvoiceActionInput,
 ): Promise<FormActionResult> {
   const { valid, errors } = validateInvoiceForm(input);
-  if (!valid) return { errors };
+  if (!valid) return { ok: false, errors };
 
   await updateInvoice(id, input);
 
   revalidatePath("/");
   revalidatePath(`/invoices/${id}`);
-  redirect(`/invoices/${id}`);
+  return { ok: true, id };
 }
 
 export async function deleteInvoiceAction(id: string): Promise<MutationResult> {
   try {
     await deleteInvoiceDraft(id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Could not delete." };
+    return { ok: false, error: err instanceof Error ? err.message : "Could not delete." };
   }
   revalidatePath("/");
-  return {};
+  return { ok: true };
 }
 
 export async function voidInvoiceAction(id: string): Promise<MutationResult> {
   try {
     await voidInvoice(id);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Could not void." };
+    return { ok: false, error: err instanceof Error ? err.message : "Could not void." };
   }
   revalidatePath("/");
   revalidatePath(`/invoices/${id}`);
-  return {};
+  return { ok: true };
 }

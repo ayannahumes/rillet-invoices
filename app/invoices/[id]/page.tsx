@@ -83,8 +83,8 @@ export default async function InvoiceDetail({
         <h2 className="text-xs uppercase tracking-wider text-faint">
           Line items
         </h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-line bg-surface">
-          <table className="w-full text-sm">
+        <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-3 font-medium">Description</th>

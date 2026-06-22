@@ -134,8 +134,8 @@ async function InvoiceListBody() {
         </div>
       </section>
 
-      <div className="mt-10 overflow-hidden rounded-lg border border-line bg-surface">
-        <table className="w-full text-sm">
+      <div className="mt-10 overflow-x-auto rounded-lg border border-line bg-surface">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
               <th className="px-5 py-3 font-medium">Customer</th>

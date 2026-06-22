@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { validateInvoiceForm } from "@/lib/validateInvoice";
 import { formatMoney } from "@/lib/format";
@@ -77,8 +79,9 @@ export function InvoiceForm({
   );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const setField = (k: keyof typeof fields, v: string) =>
     setFields((f) => ({ ...f, [k]: v }));
@@ -120,19 +123,23 @@ export function InvoiceForm({
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setFormError(null);
     const input = buildInput();
     const { valid, errors: errs } = validateInvoiceForm(input);
     if (!valid) {
       setErrors(errs);
+      toast("Please fix the highlighted fields.", "warning");
       return;
     }
     setErrors({});
     startTransition(async () => {
       const result = await action(input);
-      // A successful action redirects server-side; only failures return here.
-      if (result?.errors) setErrors(result.errors);
-      else if (result === undefined) return;
+      if (result.ok) {
+        toast(initial ? "Invoice saved" : "Invoice created", "success");
+        router.push(`/invoices/${result.id}`);
+      } else {
+        setErrors(result.errors);
+        toast("Please fix the highlighted fields.", "warning");
+      }
     });
   }
 
@@ -359,8 +366,6 @@ export function InvoiceForm({
           </div>
         </dl>
       </div>
-
-      {formError && <p className="text-sm text-overdue">{formError}</p>}
 
       <div className="flex items-center gap-4">
         <button

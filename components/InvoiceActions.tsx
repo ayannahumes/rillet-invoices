@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteInvoiceAction, voidInvoiceAction } from "@/app/invoices/actions";
+import { useToast } from "@/components/Toast";
 import type { InvoiceStatus } from "@/lib/invoices";
 
 const BTN =
@@ -17,8 +18,8 @@ export function InvoiceActions({
   status: InvoiceStatus;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
   const isDraft = status === "Draft";
   const isVoid = status === "Void";
@@ -31,11 +32,14 @@ export function InvoiceActions({
       )
     )
       return;
-    setError(null);
     startTransition(async () => {
       const res = await deleteInvoiceAction(id);
-      if (res.error) setError(res.error);
-      else router.push("/");
+      if (res.ok) {
+        toast("Invoice deleted.", "success");
+        router.push("/");
+      } else {
+        toast(res.error, "error");
+      }
     });
   }
 
@@ -47,11 +51,14 @@ export function InvoiceActions({
       )
     )
       return;
-    setError(null);
     startTransition(async () => {
       const res = await voidInvoiceAction(id);
-      if (res.error) setError(res.error);
-      else router.refresh();
+      if (res.ok) {
+        toast("Invoice voided.", "warning");
+        router.refresh();
+      } else {
+        toast(res.error, "error");
+      }
     });
   }
 
@@ -73,7 +80,6 @@ export function InvoiceActions({
           </button>
         )}
       </div>
-      {error && <p className="text-xs text-overdue">{error}</p>}
     </div>
   );
 }
