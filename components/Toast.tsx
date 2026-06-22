@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
@@ -107,6 +108,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const confirmToasts = toasts.filter(
     (t): t is ConfirmToast => t.kind === "confirm",
   );
+
+  // Escape cancels the topmost open confirm (parity with backdrop click).
+  useEffect(() => {
+    if (confirmToasts.length === 0) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      const top = confirmToasts[confirmToasts.length - 1];
+      top.onResult(false);
+      remove(top.id);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmToasts, remove]);
 
   return (
     <ToastContext.Provider value={{ toast, confirm }}>
