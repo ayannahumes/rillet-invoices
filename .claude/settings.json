@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "Bash(npm run *)",
+      "Bash(echo \"dev pid: $!\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(grep -E 'Acme|Brightline|Juniper|Northwind|INV-|overdue|due soon|\\\\$|CA\\\\$|£|Draft|Sent|Paid|Void')",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"next-server\")",
+      "Bash(curl -s -o /dev/null -w 'port 3000 after kill: %{http_code}\\\\n' --max-time 3 http://localhost:3000)",
+      "Bash(node -e \"const d=require\\('./db/seed/invoices.json'\\); console.log\\('invoices in seed:', d.invoices.length\\)\")",
+      "Bash(node --env-file=.env.local .v.mjs)",
+      "Bash(grep -vE 'INV-|Invoices$')",
+      "Bash(awk '!seen[$0]++')",
+      "Bash(DATABASE_URL='postgresql://u:p@nonexistent-host.invalid.neon.tech/db?sslmode=require' npm run dev)",
+      "Bash(grep -oE \"couldn.{0,3}t load your invoices|Try again|font-serif\")",
+      "Bash(DATABASE_URL='postgresql://u:p@nonexistent-host.invalid.neon.tech/db?sslmode=require' npm run start)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"next start\")",
+      "Bash(echo \"build exit: $?\")",
+      "Bash(grep -oiE \"couldn.{0,3}t find that invoice|Not found|Back to invoices\")",
+      "Bash(vercel ls *)",
+      "Bash(git rm *)",
+      "Bash(SLOW_MS=2500 npm run start)",
+      "Bash(break)",
+      "Bash(curl -s -o /dev/null -w 'request 1: %{time_total}s\\\\n' \"http://localhost:3000/?t=$\\(date +%s\\)1\")",
+      "Bash(curl -s -o /dev/null -w 'request 2: %{time_total}s\\\\n' \"http://localhost:3000/?t=$\\(date +%s\\)2\")",
+      "Bash(xargs kill -9)",
+      "Bash(git mv *)",
+      "Bash(echo \"exit $?\")",
+      "Bash(curl -s -w 'TTFB=%{time_starttransfer}s total=%{time_total}s\\\\n' \"http://localhost:3000/?cb=$\\(date +%s%N\\)\" -o /tmp/home.html)",
+      "Bash(curl -s -w 'TTFB=%{time_starttransfer}s total=%{time_total}s\\\\n' \"http://localhost:3000/?cb=$\\(date +%s%N\\)\" -o /tmp/h.html)"
+    ]
+  }
+}

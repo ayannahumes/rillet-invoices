@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -149,40 +150,95 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
       {/* Confirmations — centered blocking overlay */}
       {confirmToasts.map((t) => (
-        <div
+        <ConfirmDialog
           key={t.id}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => resolveConfirm(t, false)}
-            aria-hidden
-          />
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            className="relative w-full max-w-md rounded-lg border border-line bg-surface p-6 shadow-xl"
-          >
-            <p className="text-sm text-ink">{t.message}</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => resolveConfirm(t, false)}
-                className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
-              >
-                {t.cancelLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => resolveConfirm(t, true)}
-                className={`rounded px-4 py-2 text-sm font-medium text-white ${CONFIRM_BTN[t.variant]}`}
-              >
-                {t.confirmLabel}
-              </button>
-            </div>
-          </div>
-        </div>
+          toast={t}
+          onResolve={(ok) => resolveConfirm(t, ok)}
+        />
       ))}
     </ToastContext.Provider>
+  );
+}
+
+/**
+ * Modal confirmation dialog. Handles the keyboard / screen-reader contract for a
+ * modal: focus moves to the (safe) Cancel button on open, Tab is trapped inside
+ * the dialog, and focus is restored to the triggering element on close. Escape
+ * is handled by the provider. `aria-labelledby` names the dialog by its message.
+ */
+function ConfirmDialog({
+  toast,
+  onResolve,
+}: {
+  toast: ConfirmToast;
+  onResolve: (ok: boolean) => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const messageId = `confirm-message-${toast.id}`;
+
+  // Move focus into the dialog on open; restore it to the previously-focused
+  // element (the trigger) on close.
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    cancelRef.current?.focus();
+    return () => previouslyFocused?.focus?.();
+  }, []);
+
+  // Trap Tab focus within the dialog.
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "Tab") return;
+    const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusables || focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={() => onResolve(false)}
+        aria-hidden
+      />
+      <div
+        ref={dialogRef}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={messageId}
+        onKeyDown={onKeyDown}
+        className="relative w-full max-w-md rounded-lg border border-line bg-surface p-6 shadow-xl"
+      >
+        <p id={messageId} className="text-sm text-ink">
+          {toast.message}
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={() => onResolve(false)}
+            className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-bg"
+          >
+            {toast.cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => onResolve(true)}
+            className={`rounded px-4 py-2 text-sm font-medium text-white ${CONFIRM_BTN[toast.variant]}`}
+          >
+            {toast.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

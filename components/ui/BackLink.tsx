@@ -10,8 +10,8 @@ export function BackLink({
   children: ReactNode;
 }) {
   return (
-    <Link href={href} className="text-sm text-muted hover:text-ink">
-      ← {children}
+    <Link href={href} className="inline-block rounded text-sm text-muted hover:text-ink">
+      <span aria-hidden="true">←</span> {children}
     </Link>
   );
 }

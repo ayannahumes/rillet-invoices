@@ -58,6 +58,15 @@ body {
   }
 }
 
+/* Visible keyboard-focus indicator for every interactive element. This is an
+   unlayered rule, so it overrides Tailwind's layered `outline-none` utility
+   (e.g. on form inputs). `:focus-visible` only matches keyboard / AT focus, so
+   mouse clicks stay ring-free. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shimmer {
     animation: none;

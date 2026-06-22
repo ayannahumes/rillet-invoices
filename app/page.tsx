@@ -135,8 +135,44 @@ async function InvoiceListBody() {
         </div>
       </section>
 
-      <Card className="mt-10 overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
+      <Card className="mt-10 overflow-hidden">
+        {/* Mobile: stacked cards (no horizontal scroll). */}
+        <ul className="divide-y divide-line sm:hidden">
+          {rows.map(({ invoice, totals, risk }) => (
+            <li key={invoice.id}>
+              <Link
+                href={`/invoices/${invoice.id}`}
+                className="block px-5 py-4 hover:bg-bg"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-ink">
+                      {invoice.customerName}
+                    </div>
+                    <div className="text-xs text-faint">
+                      {invoice.invoiceNumber}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right text-ink tabular-nums">
+                    {formatMoney(totals.total, invoice.currency)}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                  <StatusBadge status={invoice.status} />
+                  <span className="text-xs">
+                    <RiskCell risk={risk} dueDate={invoice.dueDate} />
+                  </span>
+                </div>
+                <div className="mt-1 text-xs text-faint">
+                  Updated {formatDate(invoice.updatedAt)}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {/* sm and up: full data table. */}
+        <table className="hidden w-full text-sm sm:table">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
               <th className="px-5 py-3 font-medium">Customer</th>

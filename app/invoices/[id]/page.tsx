@@ -40,8 +40,8 @@ export default async function InvoiceDetail({
       <BackLink href="/">Invoices</BackLink>
 
       <header className="mt-4 flex items-start justify-between gap-4">
-        <div>
-          <Heading>{invoice.customerName}</Heading>
+        <div className="min-w-0">
+          <Heading className="break-words">{invoice.customerName}</Heading>
           <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
         </div>
         <InvoiceActions id={invoice.id} status={invoice.status} />
@@ -67,8 +67,30 @@ export default async function InvoiceDetail({
 
       <section className="mt-10">
         <Label as="h2">Line items</Label>
-        <Card className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+        <Card className="mt-3 overflow-hidden">
+          {/* Mobile: stacked cards (no horizontal scroll). */}
+          <ul className="divide-y divide-line sm:hidden">
+            {invoice.lineItems.map((item) => (
+              <li key={item.id} className="px-5 py-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="min-w-0 text-ink">{item.description}</div>
+                  <div className="shrink-0 text-right text-ink tabular-nums">
+                    {formatMoney(
+                      item.quantity * item.unitPrice,
+                      invoice.currency,
+                    )}
+                  </div>
+                </div>
+                <div className="mt-1 text-xs text-muted tabular-nums">
+                  {item.accountCode} · {item.quantity.toLocaleString("en-US")} ×{" "}
+                  {formatMoney(item.unitPrice, invoice.currency)}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* sm and up: full data table. */}
+          <table className="hidden w-full text-sm sm:table">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
                 <th className="px-5 py-3 font-medium">Description</th>

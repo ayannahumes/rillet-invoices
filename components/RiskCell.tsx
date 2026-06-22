@@ -10,13 +10,18 @@ export function RiskCell({
   risk: DueDateRisk;
   dueDate: string | null;
 }) {
-  if (!dueDate) return <span className="text-faint">—</span>;
+  if (!dueDate)
+    return (
+      <span className="text-faint" aria-label="No due date">
+        <span aria-hidden="true">—</span>
+      </span>
+    );
   const date = formatDate(dueDate);
 
   if (risk.level === "overdue") {
     return (
       <span className="text-muted">
-        {date} ·{" "}
+        {date} <span aria-hidden="true">·</span>{" "}
         <span className="font-medium text-overdue">
           {risk.daysOverdue} day{risk.daysOverdue === 1 ? "" : "s"} overdue
         </span>
@@ -26,7 +31,8 @@ export function RiskCell({
   if (risk.level === "due-soon") {
     return (
       <span className="text-muted">
-        {date} · <span className="text-due-soon">due soon</span>
+        {date} <span aria-hidden="true">·</span>{" "}
+        <span className="text-due-soon">due soon</span>
       </span>
     );
   }
