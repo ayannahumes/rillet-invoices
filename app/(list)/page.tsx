@@ -5,17 +5,16 @@ import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 import { sortByTriage } from "@/lib/sortByTriage";
 import { CURRENT_DATE } from "@/lib/currentDate";
-import { ORG } from "@/lib/org";
 import { sumByCurrency } from "@/lib/sumByCurrency";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DueDisplay } from "@/components/DueDisplay";
 import { InvoiceRow } from "@/components/InvoiceRow";
+import { InvoicesHeader } from "@/components/InvoicesHeader";
+import { InvoiceListSkeleton } from "@/components/InvoiceListSkeleton";
 import { PageShell } from "@/components/ui/PageShell";
-import { Heading } from "@/components/ui/Heading";
 import { Card } from "@/components/ui/Card";
 import { StatCard } from "@/components/StatCard";
-import { buttonClass } from "@/components/ui/Button";
 import { maybeDelay } from "@/lib/devDelay";
 
 // Always query per request — the invoices list is live data, and this is also
@@ -26,45 +25,6 @@ export const dynamic = "force-dynamic";
 // "Outstanding" = issued and awaiting payment (sent & unpaid). Excludes drafts,
 // paid, and void.
 const OUTSTANDING_STATUSES: PaymentStatus[] = ["Open", "Overdue"];
-
-// Shimmer fallback for the body only (the header renders instantly). As an
-// in-page Suspense boundary this streams on the initial/hard load (and refresh)
-// but is preserved during client navigations, so returning to the list does
-// NOT re-show the skeleton. The `skeleton` class delays the reveal ~400ms so
-// fast loads don't flash it.
-function InvoiceListSkeleton() {
-  return (
-    <div className="skeleton" role="status" aria-live="polite">
-      <span className="sr-only">Loading invoices…</span>
-      <div aria-hidden="true">
-        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-xl bg-muted-surface px-5 py-4">
-              <div className="h-3 w-24 shimmer rounded" />
-              <div className="mt-2 h-7 w-28 shimmer rounded" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-10 overflow-hidden rounded-lg border border-line bg-surface">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-6 border-b border-line px-5 py-4 last:border-0"
-            >
-              <div className="flex-1 space-y-2">
-                <div className="h-4 w-40 shimmer rounded" />
-                <div className="h-3 w-24 shimmer rounded" />
-              </div>
-              <div className="h-4 w-16 shimmer rounded" />
-              <div className="h-4 w-32 shimmer rounded" />
-              <div className="h-4 w-24 shimmer rounded" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 async function InvoiceListBody() {
   await maybeDelay(); // dev-only: SLOW_MS=2500 npm run start
@@ -261,18 +221,7 @@ async function InvoiceListBody() {
 export default function Home() {
   return (
     <PageShell width="lg">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <Heading>Invoices</Heading>
-          <p className="mt-1 text-muted">
-            {ORG.name} <span aria-hidden="true">·</span> base currency{" "}
-            {ORG.baseCurrency}
-          </p>
-        </div>
-        <Link href="/invoices/new" className={buttonClass("outline")}>
-          New invoice
-        </Link>
-      </div>
+      <InvoicesHeader />
 
       <Suspense fallback={<InvoiceListSkeleton />}>
         <InvoiceListBody />

@@ -132,19 +132,6 @@ body {
   }
 }
 
-/* Delay-before-show: keep the skeleton invisible for a beat so fast loads never
-   flash it; only genuinely slow loads fade it in. */
-.skeleton {
-  opacity: 0;
-  animation: skeleton-reveal 0s linear 400ms forwards;
-}
-
-@keyframes skeleton-reveal {
-  to {
-    opacity: 1;
-  }
-}
-
 /* Visible keyboard-focus indicator for every interactive element. This is an
    unlayered rule, so it overrides Tailwind's layered `outline-none` utility
    (e.g. on form inputs). `:focus-visible` only matches keyboard / AT focus, so
