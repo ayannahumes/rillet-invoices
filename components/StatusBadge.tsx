@@ -1,28 +1,26 @@
+import { Badge } from "@/components/ui/Badge";
 import type { InvoiceStatus } from "@/lib/invoices";
 
 // Lifecycle status is encoded by weight/border — never color. Color is reserved
-// strictly for risk, so the one accent stays unmissable.
+// strictly for risk, so the one accent stays unmissable. (The generic pill shell
+// lives in the Badge primitive; the per-status treatment is the domain rule.)
 export function StatusBadge({ status }: { status: InvoiceStatus }) {
-  const base =
-    "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs leading-none";
   switch (status) {
     case "Draft":
       return (
-        <span className={`${base} border border-dashed border-faint text-faint`}>
+        <Badge className="border border-dashed border-faint text-faint">
           Draft
-        </span>
+        </Badge>
       );
     case "Sent":
-      return (
-        <span className={`${base} border border-line text-muted`}>Sent</span>
-      );
+      return <Badge className="border border-line text-muted">Sent</Badge>;
     case "Paid":
       return (
-        <span className={`${base} text-muted`}>
+        <Badge className="text-muted">
           <span aria-hidden>✓</span> Paid
-        </span>
+        </Badge>
       );
     case "Void":
-      return <span className={`${base} text-faint line-through`}>Void</span>;
+      return <Badge className="text-faint line-through">Void</Badge>;
   }
 }

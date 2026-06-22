@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { validateInvoiceForm } from "@/lib/validateInvoice";
 import { formatMoney } from "@/lib/format";
 import { buttonClass } from "@/components/ui/Button";
-import { labelClass } from "@/components/ui/Label";
 import type { Invoice } from "@/lib/invoices";
 import type {
   InvoiceActionInput,
@@ -25,7 +24,7 @@ type LineRow = {
 
 const INPUT =
   "w-full rounded border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-ink";
-const LABEL = `block ${labelClass}`;
+const LABEL = "block eyebrow";
 
 function emptyRow(): LineRow {
   return {

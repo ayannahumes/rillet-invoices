@@ -125,7 +125,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastContext.Provider value={{ toast, confirm }}>
-      {children}
+      {/* While a confirm dialog is open the rest of the app is inert, so neither
+          Tab nor a screen-reader's virtual cursor can reach the page behind the
+          modal. The dialog and toasts render outside this wrapper, so they stay
+          interactive. */}
+      <div inert={confirmToasts.length > 0}>{children}</div>
 
       {/* Transient notifications — corner stack */}
       <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:right-4 sm:items-end">

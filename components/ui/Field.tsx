@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { labelClass } from "./Label";
 
 /** A labelled value (renders <dt>/<dd>; use inside a <dl>). */
 export function Field({
@@ -11,7 +10,7 @@ export function Field({
 }) {
   return (
     <div>
-      <dt className={labelClass}>{label}</dt>
+      <dt className="eyebrow">{label}</dt>
       <dd className="mt-1 text-ink">{children}</dd>
     </div>
   );

@@ -19,6 +19,7 @@
   --color-muted: #57534e; /* secondary text */
   --color-faint: #78716c; /* tertiary text / labels (AA on bg) */
   --color-line: #e7e5e4; /* borders / dividers */
+  --color-muted-surface: #f2f0ed; /* recessed tile fill (e.g. stat cards) */
 
   /* Risk accent — THE chromatic signal, reserved for due-date risk */
   --color-overdue: #991b1b;
@@ -65,6 +66,7 @@
     --color-muted: #d6d3d1;
     --color-faint: #a8a29e;
     --color-line: #44403c;
+    --color-muted-surface: #262220;
 
     --color-overdue: #f87171;
     --color-due-soon: #fbbf24;
@@ -100,6 +102,13 @@ body {
   background-color: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* "Eyebrow" caption — the small, uppercase, tracked, faint label used for field
+   labels and section headings. A custom utility so it composes with variants
+   (e.g. sm:eyebrow) and stays token-driven (text-faint → var(--color-faint)). */
+@utility eyebrow {
+  @apply text-xs uppercase tracking-wider text-faint;
 }
 
 /* Skeleton shimmer: a soft highlight sweeping across a grayscale bar. */

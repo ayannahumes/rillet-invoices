@@ -5,14 +5,16 @@ import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 import { sortByTriage } from "@/lib/sortByTriage";
 import { CURRENT_DATE } from "@/lib/currentDate";
+import { ORG } from "@/lib/org";
+import { sumByCurrency } from "@/lib/sumByCurrency";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
-import { RiskCell } from "@/components/RiskCell";
+import { DueDisplay } from "@/components/DueDisplay";
 import { InvoiceRow } from "@/components/InvoiceRow";
 import { PageShell } from "@/components/ui/PageShell";
 import { Heading } from "@/components/ui/Heading";
-import { Label } from "@/components/ui/Label";
 import { Card } from "@/components/ui/Card";
+import { StatCard } from "@/components/StatCard";
 import { buttonClass } from "@/components/ui/Button";
 import { maybeDelay } from "@/lib/devDelay";
 
@@ -25,23 +27,6 @@ export const dynamic = "force-dynamic";
 // paid, and void.
 const OUTSTANDING_STATUSES: PaymentStatus[] = ["Open", "Overdue"];
 
-function sumByCurrency(
-  items: { currency: string; amount: number }[],
-): Map<string, number> {
-  const totals = new Map<string, number>();
-  for (const { currency, amount } of items) {
-    totals.set(currency, (totals.get(currency) ?? 0) + amount);
-  }
-  return totals;
-}
-
-function formatCurrencyTotals(totals: Map<string, number>): string {
-  if (totals.size === 0) return "—";
-  return [...totals.entries()]
-    .map(([currency, amount]) => formatMoney(amount, currency))
-    .join(" · ");
-}
-
 // Shimmer fallback for the body only (the header renders instantly). As an
 // in-page Suspense boundary this streams on the initial/hard load (and refresh)
 // but is preserved during client navigations, so returning to the list does
@@ -52,11 +37,11 @@ function InvoiceListSkeleton() {
     <div className="skeleton" role="status" aria-live="polite">
       <span className="sr-only">Loading invoices…</span>
       <div aria-hidden="true">
-        <div className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
-          {[0, 1].map((i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-3 w-20 shimmer rounded" />
-              <div className="h-6 w-36 shimmer rounded" />
+        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-xl bg-muted-surface px-5 py-4">
+              <div className="h-3 w-24 shimmer rounded" />
+              <div className="mt-2 h-7 w-28 shimmer rounded" />
             </div>
           ))}
         </div>
@@ -113,65 +98,96 @@ async function InvoiceListBody() {
     })),
   );
 
+  const outstandingEntries = [...outstanding.entries()];
+  const overdueEntries = [...overdue.entries()];
+
   return (
     <>
-      <section className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
-        <div>
-          <Label>Outstanding</Label>
-          <div className="mt-1 text-xl text-ink tabular-nums">
-            {formatCurrencyTotals(outstanding)}
-          </div>
-        </div>
-        <div>
-          <Label>Overdue</Label>
-          <div className="mt-1 text-xl tabular-nums">
-            <span className={overdueRows.length > 0 ? "text-overdue" : "text-ink"}>
-              {overdueRows.length} invoice{overdueRows.length === 1 ? "" : "s"}
-            </span>
-            {overdueRows.length > 0 && (
-              <span className="text-muted">
-                {" · "}
-                {formatCurrencyTotals(overdue)}
-              </span>
-            )}
-          </div>
-        </div>
+      <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {outstandingEntries.length === 0 ? (
+          <StatCard label="Outstanding" value="—" valueLabel="None" />
+        ) : (
+          outstandingEntries.map(([currency, amount]) => (
+            <StatCard
+              key={`outstanding-${currency}`}
+              label={
+                <>
+                  Outstanding <span aria-hidden="true">·</span> {currency}
+                </>
+              }
+              value={formatMoney(amount, currency)}
+            />
+          ))
+        )}
+        {overdueEntries.length === 0 ? (
+          <StatCard label="Overdue" value="—" valueLabel="None" />
+        ) : (
+          overdueEntries.map(([currency, amount]) => (
+            <StatCard
+              key={`overdue-${currency}`}
+              label={
+                overdueEntries.length > 1 ? (
+                  <>
+                    Overdue <span aria-hidden="true">·</span> {currency}
+                  </>
+                ) : (
+                  "Overdue"
+                )
+              }
+              value={formatMoney(amount, currency)}
+              tone="overdue"
+            />
+          ))
+        )}
       </section>
 
       <Card className="mt-10 overflow-hidden">
         {/* Mobile: stacked cards (no horizontal scroll). */}
         <ul className="divide-y divide-line sm:hidden">
-          {rows.map(({ invoice, totals, risk }) => (
-            <li key={invoice.id}>
-              <Link
-                href={`/invoices/${invoice.id}`}
-                className="block px-5 py-4 hover:bg-bg"
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-ink">
-                      {invoice.customerName}
+          {rows.map(({ invoice, totals, risk }) => {
+            // A voided invoice is cancelled: strike its name and amount, and
+            // show no due date (passing null gives RiskCell's accessible dash).
+            const isVoid = invoice.status === "Void";
+            return (
+              <li key={invoice.id}>
+                <Link
+                  href={`/invoices/${invoice.id}`}
+                  className="block px-5 py-4 hover:bg-bg"
+                >
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0">
+                      <div
+                        className={`truncate ${isVoid ? "text-faint line-through" : "text-ink"}`}
+                      >
+                        {invoice.customerName}
+                      </div>
+                      <div className="text-xs text-faint">
+                        {invoice.invoiceNumber}
+                      </div>
                     </div>
-                    <div className="text-xs text-faint">
-                      {invoice.invoiceNumber}
+                    <div
+                      className={`shrink-0 text-right tabular-nums ${isVoid ? "text-faint line-through" : "text-ink"}`}
+                    >
+                      {formatMoney(totals.total, invoice.currency)}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right text-ink tabular-nums">
-                    {formatMoney(totals.total, invoice.currency)}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                    <StatusBadge status={invoice.status} />
+                    <span className="text-xs">
+                      <DueDisplay
+                        status={invoice.status}
+                        risk={risk}
+                        dueDate={invoice.dueDate}
+                      />
+                    </span>
                   </div>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                  <StatusBadge status={invoice.status} />
-                  <span className="text-xs">
-                    <RiskCell risk={risk} dueDate={invoice.dueDate} />
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-faint">
-                  Updated {formatDate(invoice.updatedAt)}
-                </div>
-              </Link>
-            </li>
-          ))}
+                  <div className="mt-1 text-xs text-faint">
+                    Updated {formatDate(invoice.updatedAt)}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         {/* sm and up: full data table. */}
@@ -197,33 +213,44 @@ async function InvoiceListBody() {
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ invoice, totals, risk }) => (
-              <InvoiceRow key={invoice.id} href={`/invoices/${invoice.id}`}>
-                <td className="px-5 py-4">
-                  <Link
-                    href={`/invoices/${invoice.id}`}
-                    className="text-ink hover:underline"
+            {rows.map(({ invoice, totals, risk }) => {
+              // A voided invoice is cancelled: strike its name and amount, and
+              // show no due date (passing null gives RiskCell's accessible dash).
+              const isVoid = invoice.status === "Void";
+              return (
+                <InvoiceRow key={invoice.id} href={`/invoices/${invoice.id}`}>
+                  <td className="px-5 py-4">
+                    <Link
+                      href={`/invoices/${invoice.id}`}
+                      className={`hover:underline ${isVoid ? "text-faint line-through" : "text-ink"}`}
+                    >
+                      {invoice.customerName}
+                    </Link>
+                    <div className="text-xs text-faint">
+                      {invoice.invoiceNumber}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <StatusBadge status={invoice.status} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <DueDisplay
+                      status={invoice.status}
+                      risk={risk}
+                      dueDate={invoice.dueDate}
+                    />
+                  </td>
+                  <td
+                    className={`px-5 py-4 text-right tabular-nums ${isVoid ? "text-faint line-through" : "text-ink"}`}
                   >
-                    {invoice.customerName}
-                  </Link>
-                  <div className="text-xs text-faint">
-                    {invoice.invoiceNumber}
-                  </div>
-                </td>
-                <td className="px-5 py-4">
-                  <StatusBadge status={invoice.status} />
-                </td>
-                <td className="px-5 py-4">
-                  <RiskCell risk={risk} dueDate={invoice.dueDate} />
-                </td>
-                <td className="px-5 py-4 text-right text-ink tabular-nums">
-                  {formatMoney(totals.total, invoice.currency)}
-                </td>
-                <td className="px-5 py-4 text-muted">
-                  {formatDate(invoice.updatedAt)}
-                </td>
-              </InvoiceRow>
-            ))}
+                    {formatMoney(totals.total, invoice.currency)}
+                  </td>
+                  <td className="px-5 py-4 text-muted">
+                    {formatDate(invoice.updatedAt)}
+                  </td>
+                </InvoiceRow>
+              );
+            })}
           </tbody>
         </table>
       </Card>
@@ -234,8 +261,14 @@ async function InvoiceListBody() {
 export default function Home() {
   return (
     <PageShell width="lg">
-      <div className="flex items-center justify-between gap-4">
-        <Heading>Invoices</Heading>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <Heading>Invoices</Heading>
+          <p className="mt-1 text-muted">
+            {ORG.name} <span aria-hidden="true">·</span> base currency{" "}
+            {ORG.baseCurrency}
+          </p>
+        </div>
         <Link href="/invoices/new" className={buttonClass("outline")}>
           New invoice
         </Link>

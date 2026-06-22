@@ -7,13 +7,12 @@ import { getDueDateRisk } from "@/lib/getDueDateRisk";
 import { CURRENT_DATE } from "@/lib/currentDate";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
-import { RiskCell } from "@/components/RiskCell";
+import { DueDisplay } from "@/components/DueDisplay";
 import { ActivityLog } from "@/components/ActivityLog";
 import { InvoiceActions } from "@/components/InvoiceActions";
 import { PageShell } from "@/components/ui/PageShell";
 import { Heading } from "@/components/ui/Heading";
 import { BackLink } from "@/components/ui/BackLink";
-import { Label } from "@/components/ui/Label";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { maybeDelay } from "@/lib/devDelay";
@@ -51,6 +50,17 @@ export default async function InvoiceDetail({
   const totals = calculateInvoiceTotal(invoice);
   const risk = getDueDateRisk(invoice, CURRENT_DATE);
 
+  // The dates-footer "Due" mirrors the row rule (drafts aren't sent; voids have
+  // no due date), but as a plain date — no risk accent in the neutral footer.
+  const dueDateLabel =
+    invoice.status === "Draft"
+      ? "Not sent"
+      : invoice.status === "Void"
+        ? "—"
+        : invoice.dueDate
+          ? formatDate(invoice.dueDate)
+          : "—";
+
   return (
     <PageShell width="md">
       <BackLink href="/">Invoices</BackLink>
@@ -70,7 +80,7 @@ export default async function InvoiceDetail({
         <Field label="Payment status">{invoice.paymentStatus}</Field>
         <Field label="Terms">{invoice.paymentTerms ?? "—"}</Field>
         <Field label="Due">
-          <RiskCell risk={risk} dueDate={invoice.dueDate} />
+          <DueDisplay status={invoice.status} risk={risk} dueDate={invoice.dueDate} />
         </Field>
         <Field label="Bill to">
           <div>{invoice.billingEmail ?? "—"}</div>
@@ -82,7 +92,7 @@ export default async function InvoiceDetail({
       </dl>
 
       <section className="mt-10">
-        <Label as="h2">Line items</Label>
+        <h2 className="eyebrow">Line items</h2>
         <Card className="mt-3 overflow-hidden">
           {/* Mobile: stacked cards (no horizontal scroll). */}
           <ul className="divide-y divide-line sm:hidden">
@@ -186,15 +196,13 @@ export default async function InvoiceDetail({
       </section>
 
       <section className="mt-10">
-        <Label as="h2">Memo</Label>
+        <h2 className="eyebrow">Memo</h2>
         <p className="mt-2 text-ink">{invoice.memo ?? "—"}</p>
       </section>
 
       <dl className="mt-10 grid grid-cols-2 gap-x-12 gap-y-6 border-t border-line pt-8 sm:grid-cols-4">
         <Field label="Issued">{formatDate(invoice.issueDate)}</Field>
-        <Field label="Due">
-          {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
-        </Field>
+        <Field label="Due">{dueDateLabel}</Field>
         {invoice.paidDate && (
           <Field label="Paid">{formatDate(invoice.paidDate)}</Field>
         )}

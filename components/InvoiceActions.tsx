@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteInvoiceAction, voidInvoiceAction } from "@/app/invoices/actions";
-import { useToast } from "@/components/Toast";
+import { useToast } from "@/components/ui/Toast";
 import { Button, buttonClass } from "@/components/ui/Button";
 import type { InvoiceStatus } from "@/lib/invoices";
 
