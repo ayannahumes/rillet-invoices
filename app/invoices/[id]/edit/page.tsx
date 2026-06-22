@@ -8,6 +8,8 @@ import { BackLink } from "@/components/ui/BackLink";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Edit invoice" };
+
 export default async function EditInvoice({
   params,
 }: {

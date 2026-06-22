@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
@@ -40,6 +40,55 @@ function emptyRow(): LineRow {
 function num(value: string): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : NaN;
+}
+
+/**
+ * A labelled text input with its error wired up for assistive tech: the `<label>`
+ * is associated via `htmlFor`/`id`, and when there's an error the input gets
+ * `aria-invalid` plus `aria-describedby` pointing at the error message.
+ */
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  type = "text",
+  placeholder,
+  className,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  type?: string;
+  placeholder?: string;
+  className?: string;
+}) {
+  const errorId = `${id}-error`;
+  return (
+    <div className={className}>
+      <label htmlFor={id} className={LABEL}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        placeholder={placeholder}
+        className={INPUT}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+      />
+      {error && (
+        <p id={errorId} className="mt-1 text-xs text-overdue">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function InvoiceForm({
@@ -85,6 +134,34 @@ export function InvoiceForm({
   const router = useRouter();
   const { toast } = useToast();
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const addLineBtnRef = useRef<HTMLButtonElement>(null);
+  const focusErrorRef = useRef(false);
+  const lineFocusRef = useRef<"none" | "add" | "remove">("none");
+
+  // After a failed submit, move focus to the first invalid field so keyboard /
+  // screen-reader users land on the problem instead of having to hunt for it.
+  useEffect(() => {
+    if (!focusErrorRef.current) return;
+    focusErrorRef.current = false;
+    formRef.current
+      ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?.focus();
+  }, [errors]);
+
+  // Keep focus sensible as line rows are added/removed: a new row focuses its
+  // description input; removing a row returns focus to the "Add line" button.
+  useEffect(() => {
+    const action = lineFocusRef.current;
+    if (action === "none") return;
+    lineFocusRef.current = "none";
+    if (action === "add") {
+      document.getElementById(`line-${rows.length - 1}-description`)?.focus();
+    } else {
+      addLineBtnRef.current?.focus();
+    }
+  }, [rows.length]);
+
   const setField = (k: keyof typeof fields, v: string) =>
     setFields((f) => ({ ...f, [k]: v }));
   const setRow = (key: string, patch: Partial<LineRow>) =>
@@ -129,6 +206,7 @@ export function InvoiceForm({
     const { valid, errors: errs } = validateInvoiceForm(input);
     if (!valid) {
       setErrors(errs);
+      focusErrorRef.current = true;
       toast("Please fix the highlighted fields.", "warning");
       return;
     }
@@ -140,6 +218,7 @@ export function InvoiceForm({
         router.push(`/invoices/${result.id}`);
       } else {
         setErrors(result.errors);
+        focusErrorRef.current = true;
         toast("Please fix the highlighted fields.", "warning");
       }
     });
@@ -151,98 +230,80 @@ export function InvoiceForm({
     ) : null;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-8">
       <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-        <div>
-          <label className={LABEL}>Customer name</label>
-          <input
-            className={INPUT}
-            value={fields.customerName}
-            onChange={(e) => setField("customerName", e.target.value)}
-          />
-          {err("customerName")}
-        </div>
-        <div>
-          <label className={LABEL}>Invoice number</label>
-          <input
-            className={INPUT}
-            value={fields.invoiceNumber}
-            onChange={(e) => setField("invoiceNumber", e.target.value)}
-          />
-          {err("invoiceNumber")}
-        </div>
-        <div>
-          <label className={LABEL}>Billing email</label>
-          <input
-            className={INPUT}
-            value={fields.billingEmail}
-            onChange={(e) => setField("billingEmail", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={LABEL}>Payment terms</label>
-          <input
-            className={INPUT}
-            placeholder="Net 30"
-            value={fields.paymentTerms}
-            onChange={(e) => setField("paymentTerms", e.target.value)}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className={LABEL}>Billing address</label>
-          <input
-            className={INPUT}
-            value={fields.billingAddress}
-            onChange={(e) => setField("billingAddress", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className={LABEL}>Currency</label>
-          <input
-            className={INPUT}
-            value={fields.currency}
-            onChange={(e) => setField("currency", e.target.value)}
-          />
-          {err("currency")}
-        </div>
-        <div>
-          <label className={LABEL}>Issue date</label>
-          <input
-            type="date"
-            className={INPUT}
-            value={fields.issueDate}
-            onChange={(e) => setField("issueDate", e.target.value)}
-          />
-          {err("issueDate")}
-        </div>
-        <div>
-          <label className={LABEL}>Due date</label>
-          <input
-            type="date"
-            className={INPUT}
-            value={fields.dueDate}
-            onChange={(e) => setField("dueDate", e.target.value)}
-          />
-          {err("dueDate")}
-        </div>
-        <div>
-          <label className={LABEL}>Tax rate (fraction, e.g. 0.085)</label>
-          <input
-            className={INPUT}
-            value={fields.taxRate}
-            onChange={(e) => setField("taxRate", e.target.value)}
-          />
-          {err("taxRate")}
-        </div>
-        <div>
-          <label className={LABEL}>Discount (amount)</label>
-          <input
-            className={INPUT}
-            value={fields.discount}
-            onChange={(e) => setField("discount", e.target.value)}
-          />
-          {err("discount")}
-        </div>
+        <TextField
+          id="customerName"
+          label="Customer name"
+          value={fields.customerName}
+          onChange={(v) => setField("customerName", v)}
+          error={errors.customerName}
+        />
+        <TextField
+          id="invoiceNumber"
+          label="Invoice number"
+          value={fields.invoiceNumber}
+          onChange={(v) => setField("invoiceNumber", v)}
+          error={errors.invoiceNumber}
+        />
+        <TextField
+          id="billingEmail"
+          label="Billing email"
+          type="email"
+          value={fields.billingEmail}
+          onChange={(v) => setField("billingEmail", v)}
+        />
+        <TextField
+          id="paymentTerms"
+          label="Payment terms"
+          placeholder="Net 30"
+          value={fields.paymentTerms}
+          onChange={(v) => setField("paymentTerms", v)}
+        />
+        <TextField
+          id="billingAddress"
+          label="Billing address"
+          className="sm:col-span-2"
+          value={fields.billingAddress}
+          onChange={(v) => setField("billingAddress", v)}
+        />
+        <TextField
+          id="currency"
+          label="Currency"
+          value={fields.currency}
+          onChange={(v) => setField("currency", v)}
+          error={errors.currency}
+        />
+        <TextField
+          id="issueDate"
+          label="Issue date"
+          type="date"
+          value={fields.issueDate}
+          onChange={(v) => setField("issueDate", v)}
+          error={errors.issueDate}
+        />
+        <TextField
+          id="dueDate"
+          label="Due date"
+          type="date"
+          value={fields.dueDate}
+          onChange={(v) => setField("dueDate", v)}
+          error={errors.dueDate}
+        />
+        <TextField
+          id="taxRate"
+          label="Tax rate (fraction, e.g. 0.085)"
+          value={fields.taxRate}
+          onChange={(v) => setField("taxRate", v)}
+          error={errors.taxRate}
+        />
+        <TextField
+          id="discount"
+          label="Discount (amount)"
+          value={fields.discount}
+          onChange={(v) => setField("discount", v)}
+          error={errors.discount}
+        />
       </div>
 
       {/* Line items */}
@@ -252,9 +313,13 @@ export function InvoiceForm({
             Line items
           </h2>
           <button
+            ref={addLineBtnRef}
             type="button"
-            onClick={() => setRows((rs) => [...rs, emptyRow()])}
-            className="text-sm text-ink hover:underline"
+            onClick={() => {
+              lineFocusRef.current = "add";
+              setRows((rs) => [...rs, emptyRow()]);
+            }}
+            className="rounded text-sm text-ink hover:underline"
           >
             + Add line
           </button>
@@ -262,67 +327,124 @@ export function InvoiceForm({
         {err("lineItems")}
 
         <div className="mt-3 space-y-3">
-          {rows.map((r, i) => (
-            <div key={r.key} className="rounded-lg border border-line p-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
-                <div className="sm:col-span-5">
-                  <input
-                    className={INPUT}
-                    placeholder="Description"
-                    value={r.description}
-                    onChange={(e) => setRow(r.key, { description: e.target.value })}
-                  />
-                  {err(`lineItems.${i}.description`)}
+          {rows.map((r, i) => {
+            const descErr = errors[`lineItems.${i}.description`];
+            const qtyErr = errors[`lineItems.${i}.quantity`];
+            const priceErr = errors[`lineItems.${i}.unitPrice`];
+            return (
+              <div key={r.key} className="rounded-lg border border-line p-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-12">
+                  <div className="sm:col-span-5">
+                    <input
+                      id={`line-${i}-description`}
+                      className={INPUT}
+                      placeholder="Description"
+                      aria-label={`Line ${i + 1} description`}
+                      value={r.description}
+                      onChange={(e) =>
+                        setRow(r.key, { description: e.target.value })
+                      }
+                      aria-invalid={descErr ? true : undefined}
+                      aria-describedby={
+                        descErr ? `line-${i}-description-error` : undefined
+                      }
+                    />
+                    {descErr && (
+                      <p
+                        id={`line-${i}-description-error`}
+                        className="mt-1 text-xs text-overdue"
+                      >
+                        {descErr}
+                      </p>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      id={`line-${i}-account`}
+                      className={INPUT}
+                      placeholder="Account"
+                      aria-label={`Line ${i + 1} account code`}
+                      value={r.accountCode}
+                      onChange={(e) =>
+                        setRow(r.key, { accountCode: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      id={`line-${i}-quantity`}
+                      className={`${INPUT} text-right tabular-nums`}
+                      placeholder="Qty"
+                      inputMode="decimal"
+                      aria-label={`Line ${i + 1} quantity`}
+                      value={r.quantity}
+                      onChange={(e) =>
+                        setRow(r.key, { quantity: e.target.value })
+                      }
+                      aria-invalid={qtyErr ? true : undefined}
+                      aria-describedby={
+                        qtyErr ? `line-${i}-quantity-error` : undefined
+                      }
+                    />
+                    {qtyErr && (
+                      <p
+                        id={`line-${i}-quantity-error`}
+                        className="mt-1 text-xs text-overdue"
+                      >
+                        {qtyErr}
+                      </p>
+                    )}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <input
+                      id={`line-${i}-unitPrice`}
+                      className={`${INPUT} text-right tabular-nums`}
+                      placeholder="Unit price"
+                      inputMode="decimal"
+                      aria-label={`Line ${i + 1} unit price`}
+                      value={r.unitPrice}
+                      onChange={(e) =>
+                        setRow(r.key, { unitPrice: e.target.value })
+                      }
+                      aria-invalid={priceErr ? true : undefined}
+                      aria-describedby={
+                        priceErr ? `line-${i}-unitPrice-error` : undefined
+                      }
+                    />
+                    {priceErr && (
+                      <p
+                        id={`line-${i}-unitPrice-error`}
+                        className="mt-1 text-xs text-overdue"
+                      >
+                        {priceErr}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end sm:col-span-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        lineFocusRef.current = "remove";
+                        setRows((rs) => rs.filter((x) => x.key !== r.key));
+                      }}
+                      disabled={rows.length === 1}
+                      className="rounded text-faint hover:text-overdue disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={`Remove line ${i + 1}`}
+                    >
+                      <span aria-hidden="true">✕</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="sm:col-span-2">
-                  <input
-                    className={INPUT}
-                    placeholder="Account"
-                    value={r.accountCode}
-                    onChange={(e) => setRow(r.key, { accountCode: e.target.value })}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <input
-                    className={`${INPUT} text-right tabular-nums`}
-                    placeholder="Qty"
-                    value={r.quantity}
-                    onChange={(e) => setRow(r.key, { quantity: e.target.value })}
-                  />
-                  {err(`lineItems.${i}.quantity`)}
-                </div>
-                <div className="sm:col-span-2">
-                  <input
-                    className={`${INPUT} text-right tabular-nums`}
-                    placeholder="Unit price"
-                    value={r.unitPrice}
-                    onChange={(e) => setRow(r.key, { unitPrice: e.target.value })}
-                  />
-                  {err(`lineItems.${i}.unitPrice`)}
-                </div>
-                <div className="flex items-center justify-end sm:col-span-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setRows((rs) =>
-                        rs.length > 1 ? rs.filter((x) => x.key !== r.key) : rs,
-                      )
-                    }
-                    className="text-faint hover:text-overdue"
-                    aria-label="Remove line"
-                  >
-                    ✕
-                  </button>
+                <div className="mt-2 text-right text-sm tabular-nums text-muted">
+                  <span className="sr-only">Line {i + 1} amount: </span>
+                  {formatMoney(
+                    (num(r.quantity) || 0) * (num(r.unitPrice) || 0),
+                    fields.currency || "USD",
+                  )}
                 </div>
               </div>
-              <div className="mt-2 text-right text-sm tabular-nums text-muted">
-                {formatMoney(
-                  (num(r.quantity) || 0) * (num(r.unitPrice) || 0),
-                  fields.currency || "USD",
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -373,6 +495,7 @@ export function InvoiceForm({
         <button
           type="submit"
           disabled={pending}
+          aria-busy={pending}
           className={buttonClass("primary")}
         >
           {pending ? "Saving…" : submitLabel}

@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getInvoiceById } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
@@ -18,8 +20,22 @@ import { maybeDelay } from "@/lib/devDelay";
 
 export const dynamic = "force-dynamic";
 
+// Deduped within a request so generateMetadata and the page share one query.
+const loadInvoice = cache(getInvoiceById);
+
 function formatPercent(rate: number): string {
   return `${(rate * 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const invoice = await loadInvoice(id);
+  if (!invoice) return { title: "Invoice not found" };
+  return { title: `${invoice.customerName} · ${invoice.invoiceNumber}` };
 }
 
 export default async function InvoiceDetail({
@@ -29,7 +45,7 @@ export default async function InvoiceDetail({
 }) {
   const { id } = await params;
   await maybeDelay(); // dev-only: SLOW_MS=2500 npm run start
-  const invoice = await getInvoiceById(id);
+  const invoice = await loadInvoice(id);
   if (!invoice) notFound();
 
   const totals = calculateInvoiceTotal(invoice);
@@ -91,13 +107,24 @@ export default async function InvoiceDetail({
 
           {/* sm and up: full data table. */}
           <table className="hidden w-full text-sm sm:table">
+            <caption className="sr-only">Line items</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
-                <th className="px-5 py-3 font-medium">Description</th>
-                <th className="px-5 py-3 font-medium">Account</th>
-                <th className="px-5 py-3 text-right font-medium">Qty</th>
-                <th className="px-5 py-3 text-right font-medium">Unit price</th>
-                <th className="px-5 py-3 text-right font-medium">Amount</th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Description
+                </th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Account
+                </th>
+                <th scope="col" className="px-5 py-3 text-right font-medium">
+                  Qty
+                </th>
+                <th scope="col" className="px-5 py-3 text-right font-medium">
+                  Unit price
+                </th>
+                <th scope="col" className="px-5 py-3 text-right font-medium">
+                  Amount
+                </th>
               </tr>
             </thead>
             <tbody>

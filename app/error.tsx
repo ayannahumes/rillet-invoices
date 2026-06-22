@@ -22,10 +22,12 @@ export default function Error({
   return (
     <PageShell width="lg" center>
       <Heading>Invoices</Heading>
-      <p className="mt-3 text-muted">We couldn&rsquo;t load your invoices.</p>
-      <p className="mt-1 text-sm text-faint">
-        {error.digest ? `Reference: ${error.digest}` : "Please try again."}
-      </p>
+      <div role="alert">
+        <p className="mt-3 text-muted">We couldn&rsquo;t load your invoices.</p>
+        <p className="mt-1 text-sm text-faint">
+          {error.digest ? `Reference: ${error.digest}` : "Please try again."}
+        </p>
+      </div>
       <Button type="button" onClick={() => unstable_retry()} className="mt-6">
         Try again
       </Button>

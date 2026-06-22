@@ -70,11 +70,21 @@ export function InvoiceActions({
           </Link>
         )}
         {isDraft ? (
-          <Button size="sm" onClick={handleDelete} disabled={pending}>
+          <Button
+            size="sm"
+            onClick={handleDelete}
+            disabled={pending}
+            aria-busy={pending}
+          >
             Delete
           </Button>
         ) : isVoid ? null : (
-          <Button size="sm" onClick={handleVoid} disabled={pending}>
+          <Button
+            size="sm"
+            onClick={handleVoid}
+            disabled={pending}
+            aria-busy={pending}
+          >
             Void
           </Button>
         )}

@@ -6,6 +6,8 @@ import { BackLink } from "@/components/ui/BackLink";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "New invoice" };
+
 export default function NewInvoice() {
   return (
     <PageShell width="md">

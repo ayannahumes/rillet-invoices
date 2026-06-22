@@ -18,7 +18,9 @@ export function ActivityLog({ activity }: { activity: ActivityEntry[] }) {
                 {formatDateTime(entry.timestamp)}
               </span>
               <span className="text-ink">{entry.action}</span>
-              <span className="text-muted">· {entry.actor}</span>
+              <span className="text-muted">
+                <span aria-hidden="true">·</span> {entry.actor}
+              </span>
             </li>
           ))}
         </ol>
