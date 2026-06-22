@@ -13,7 +13,7 @@ reveal themselves when you ask for them.
 
 ## Live app
 
-**▶ <!-- TODO: paste the deployed URL here, e.g. https://rillet-invoices.vercel.app -->**
+**▶ [rillet-invoices.vercel.app](https://rillet-invoices.vercel.app)**
 
 > If the link is access-protected, disable deployment protection so reviewers can
 > open it without logging in. To evaluate locally instead, see **Run locally**.
