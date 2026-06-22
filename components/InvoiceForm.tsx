@@ -6,6 +6,8 @@ import { useToast } from "@/components/Toast";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { validateInvoiceForm } from "@/lib/validateInvoice";
 import { formatMoney } from "@/lib/format";
+import { buttonClass } from "@/components/ui/Button";
+import { labelClass } from "@/components/ui/Label";
 import type { Invoice } from "@/lib/invoices";
 import type {
   InvoiceActionInput,
@@ -23,7 +25,7 @@ type LineRow = {
 
 const INPUT =
   "w-full rounded border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-ink";
-const LABEL = "block text-xs uppercase tracking-wider text-faint";
+const LABEL = `block ${labelClass}`;
 
 function emptyRow(): LineRow {
   return {
@@ -371,7 +373,7 @@ export function InvoiceForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-ink px-4 py-2 text-sm text-bg disabled:opacity-50"
+          className={buttonClass("primary")}
         >
           {pending ? "Saving…" : submitLabel}
         </button>

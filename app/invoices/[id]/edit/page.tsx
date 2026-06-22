@@ -1,8 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getInvoiceById } from "@/lib/invoices";
 import { InvoiceForm } from "@/components/InvoiceForm";
 import { updateInvoiceAction } from "@/app/invoices/actions";
+import { PageShell } from "@/components/ui/PageShell";
+import { Heading } from "@/components/ui/Heading";
+import { BackLink } from "@/components/ui/BackLink";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +21,9 @@ export default async function EditInvoice({
   const action = updateInvoiceAction.bind(null, id);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 md:px-8">
-      <Link
-        href={`/invoices/${id}`}
-        className="text-sm text-muted hover:text-ink"
-      >
-        ← {invoice.invoiceNumber}
-      </Link>
-      <h1 className="mt-4 font-serif text-4xl font-medium text-ink">
-        Edit invoice
-      </h1>
+    <PageShell width="md">
+      <BackLink href={`/invoices/${id}`}>{invoice.invoiceNumber}</BackLink>
+      <Heading className="mt-4">Edit invoice</Heading>
       <div className="mt-8">
         <InvoiceForm
           action={action}
@@ -36,6 +31,6 @@ export default async function EditInvoice({
           submitLabel="Save changes"
         />
       </div>
-    </main>
+    </PageShell>
   );
 }

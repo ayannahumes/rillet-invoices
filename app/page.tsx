@@ -9,6 +9,11 @@ import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
 import { InvoiceRow } from "@/components/InvoiceRow";
+import { PageShell } from "@/components/ui/PageShell";
+import { Heading } from "@/components/ui/Heading";
+import { Label } from "@/components/ui/Label";
+import { Card } from "@/components/ui/Card";
+import { buttonClass } from "@/components/ui/Button";
 import { maybeDelay } from "@/lib/devDelay";
 
 // Always query per request — the invoices list is live data, and this is also
@@ -109,17 +114,13 @@ async function InvoiceListBody() {
     <>
       <section className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
         <div>
-          <div className="text-xs uppercase tracking-wider text-faint">
-            Outstanding
-          </div>
+          <Label>Outstanding</Label>
           <div className="mt-1 text-xl text-ink tabular-nums">
             {formatCurrencyTotals(outstanding)}
           </div>
         </div>
         <div>
-          <div className="text-xs uppercase tracking-wider text-faint">
-            Overdue
-          </div>
+          <Label>Overdue</Label>
           <div className="mt-1 text-xl tabular-nums">
             <span className={overdueRows.length > 0 ? "text-overdue" : "text-ink"}>
               {overdueRows.length} invoice{overdueRows.length === 1 ? "" : "s"}
@@ -134,7 +135,7 @@ async function InvoiceListBody() {
         </div>
       </section>
 
-      <div className="mt-10 overflow-x-auto rounded-lg border border-line bg-surface">
+      <Card className="mt-10 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
@@ -175,20 +176,17 @@ async function InvoiceListBody() {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </>
   );
 }
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
+    <PageShell width="lg">
       <div className="flex items-center justify-between gap-4">
-        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
-        <Link
-          href="/invoices/new"
-          className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
-        >
+        <Heading>Invoices</Heading>
+        <Link href="/invoices/new" className={buttonClass("outline")}>
           New invoice
         </Link>
       </div>
@@ -196,6 +194,6 @@ export default function Home() {
       <Suspense fallback={<InvoiceListSkeleton />}>
         <InvoiceListBody />
       </Suspense>
-    </main>
+    </PageShell>
   );
 }

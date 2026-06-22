@@ -5,10 +5,8 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteInvoiceAction, voidInvoiceAction } from "@/app/invoices/actions";
 import { useToast } from "@/components/Toast";
+import { Button, buttonClass } from "@/components/ui/Button";
 import type { InvoiceStatus } from "@/lib/invoices";
-
-const BTN =
-  "rounded border border-line px-3 py-1.5 text-sm text-ink transition-colors hover:bg-bg disabled:opacity-50";
 
 export function InvoiceActions({
   id,
@@ -64,18 +62,21 @@ export function InvoiceActions({
     <div className="flex flex-col items-end gap-2">
       <div className="flex items-center gap-2">
         {editable && (
-          <Link href={`/invoices/${id}/edit`} className={BTN}>
+          <Link
+            href={`/invoices/${id}/edit`}
+            className={buttonClass("outline", "sm")}
+          >
             Edit
           </Link>
         )}
         {isDraft ? (
-          <button type="button" onClick={handleDelete} disabled={pending} className={BTN}>
+          <Button size="sm" onClick={handleDelete} disabled={pending}>
             Delete
-          </button>
+          </Button>
         ) : isVoid ? null : (
-          <button type="button" onClick={handleVoid} disabled={pending} className={BTN}>
+          <Button size="sm" onClick={handleVoid} disabled={pending}>
             Void
-          </button>
+          </Button>
         )}
       </div>
     </div>

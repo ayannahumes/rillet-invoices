@@ -1,6 +1,9 @@
 "use client"; // Error boundaries must be Client Components
 
 import { useEffect } from "react";
+import { PageShell } from "@/components/ui/PageShell";
+import { Heading } from "@/components/ui/Heading";
+import { Button } from "@/components/ui/Button";
 
 // Catches runtime errors from the invoices page (e.g. the database being
 // unreachable). Kept fully grayscale and calm — the red accent stays reserved
@@ -17,19 +20,15 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-5xl flex-col items-center justify-center px-6 text-center">
-      <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
+    <PageShell width="lg" center>
+      <Heading>Invoices</Heading>
       <p className="mt-3 text-muted">We couldn&rsquo;t load your invoices.</p>
       <p className="mt-1 text-sm text-faint">
         {error.digest ? `Reference: ${error.digest}` : "Please try again."}
       </p>
-      <button
-        type="button"
-        onClick={() => unstable_retry()}
-        className="mt-6 rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
-      >
+      <Button type="button" onClick={() => unstable_retry()} className="mt-6">
         Try again
-      </button>
-    </main>
+      </Button>
+    </PageShell>
   );
 }

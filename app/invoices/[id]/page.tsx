@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getInvoiceById } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
@@ -9,27 +8,18 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
 import { ActivityLog } from "@/components/ActivityLog";
 import { InvoiceActions } from "@/components/InvoiceActions";
+import { PageShell } from "@/components/ui/PageShell";
+import { Heading } from "@/components/ui/Heading";
+import { BackLink } from "@/components/ui/BackLink";
+import { Label } from "@/components/ui/Label";
+import { Card } from "@/components/ui/Card";
+import { Field } from "@/components/ui/Field";
 import { maybeDelay } from "@/lib/devDelay";
 
 export const dynamic = "force-dynamic";
 
 function formatPercent(rate: number): string {
   return `${(rate * 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wider text-faint">{label}</dt>
-      <dd className="mt-1 text-ink">{children}</dd>
-    </div>
-  );
 }
 
 export default async function InvoiceDetail({
@@ -46,16 +36,12 @@ export default async function InvoiceDetail({
   const risk = getDueDateRisk(invoice, CURRENT_DATE);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10 md:px-8">
-      <Link href="/" className="text-sm text-muted hover:text-ink">
-        ← Invoices
-      </Link>
+    <PageShell width="md">
+      <BackLink href="/">Invoices</BackLink>
 
       <header className="mt-4 flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-serif text-4xl font-medium text-ink">
-            {invoice.customerName}
-          </h1>
+          <Heading>{invoice.customerName}</Heading>
           <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
         </div>
         <InvoiceActions id={invoice.id} status={invoice.status} />
@@ -80,10 +66,8 @@ export default async function InvoiceDetail({
       </dl>
 
       <section className="mt-10">
-        <h2 className="text-xs uppercase tracking-wider text-faint">
-          Line items
-        </h2>
-        <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-surface">
+        <Label as="h2">Line items</Label>
+        <Card className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
@@ -115,7 +99,7 @@ export default async function InvoiceDetail({
               ))}
             </tbody>
           </table>
-        </div>
+        </Card>
 
         {/* Totals breakdown */}
         <div className="mt-6 flex justify-end">
@@ -153,7 +137,7 @@ export default async function InvoiceDetail({
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xs uppercase tracking-wider text-faint">Memo</h2>
+        <Label as="h2">Memo</Label>
         <p className="mt-2 text-ink">{invoice.memo ?? "—"}</p>
       </section>
 
@@ -170,6 +154,6 @@ export default async function InvoiceDetail({
       </dl>
 
       <ActivityLog activity={invoice.activity} />
-    </main>
+    </PageShell>
   );
 }
