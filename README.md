@@ -15,8 +15,7 @@ reveal themselves when you ask for them.
 
 **▶ [rillet-invoices.vercel.app](https://rillet-invoices.vercel.app)**
 
-> If the link is access-protected, disable deployment protection so reviewers can
-> open it without logging in. To evaluate locally instead, see **Run locally**.
+To run it yourself, see **Run locally** below.
 
 ## What to try (≈2-minute tour)
 
