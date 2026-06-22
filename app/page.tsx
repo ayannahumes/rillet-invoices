@@ -7,6 +7,11 @@ import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 import { sortByTriage } from "@/lib/sortByTriage";
 
+// Always query per request — the invoices list is live data, and this is also
+// what lets a runtime DB failure surface to app/error.tsx instead of being
+// frozen into a build-time prerender.
+export const dynamic = "force-dynamic";
+
 // The seed data is authored around this date, so the crafted risk states
 // (overdue / due-soon / ok) show up. Swap for `new Date()` once data is live.
 const CURRENT_DATE = "2026-05-04";
