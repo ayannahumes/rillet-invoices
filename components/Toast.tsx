@@ -51,15 +51,15 @@ export function useToast(): ToastContextValue {
 }
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
-  success: "border-green-600 bg-green-50 text-green-900",
-  warning: "border-amber-500 bg-amber-50 text-amber-900",
-  error: "border-red-600 bg-red-50 text-red-900",
+  success: "border-success bg-success-soft text-success-strong",
+  warning: "border-warning bg-warning-soft text-warning-strong",
+  error: "border-error bg-error-soft text-error-strong",
 };
 
 const CONFIRM_BTN: Record<ToastVariant, string> = {
-  success: "bg-green-600 hover:bg-green-700",
-  warning: "bg-amber-600 hover:bg-amber-700",
-  error: "bg-red-600 hover:bg-red-700",
+  success: "bg-success hover:bg-success-hover",
+  warning: "bg-warning hover:bg-warning-hover",
+  error: "bg-error hover:bg-error-hover",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -206,7 +206,7 @@ function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-overlay"
         onClick={() => onResolve(false)}
         aria-hidden
       />
@@ -233,7 +233,7 @@ function ConfirmDialog({
           <button
             type="button"
             onClick={() => onResolve(true)}
-            className={`rounded px-4 py-2 text-sm font-medium text-white ${CONFIRM_BTN[toast.variant]}`}
+            className={`rounded px-4 py-2 text-sm font-medium text-on-accent ${CONFIRM_BTN[toast.variant]}`}
           >
             {toast.confirmLabel}
           </button>

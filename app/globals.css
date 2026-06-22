@@ -1,21 +1,99 @@
 @import "tailwindcss";
 
-/* Warm grayscale ramp + one risk accent. Everything is grayscale except
-   overdue/due-soon — the single accent earns its impact through restraint. */
+/* ============================================================================
+   Design system — the single source of truth for color.
+   Every color in the app is a semantic token defined here; components never
+   hardcode a palette value. Light values live in @theme; the dark theme further
+   down re-points the SAME tokens. Every text/background pairing meets WCAG AA
+   (≥ 4.5:1) in both modes.
+
+   The palette is warm grayscale + one risk accent (overdue / due-soon) — that
+   restraint is the whole point, so chromatic feedback colors are confined to
+   transient toasts. To retheme the app, edit values here and nowhere else.
+   ========================================================================== */
 @theme {
+  /* Surfaces & text */
   --color-bg: #faf9f7; /* warm off-white — page background */
-  --color-surface: #ffffff; /* table surface */
+  --color-surface: #ffffff; /* cards, tables, inputs */
   --color-ink: #1c1917; /* warm near-black — primary text */
   --color-muted: #57534e; /* secondary text */
-  --color-faint: #a8a29e; /* inv#, labels, tertiary */
+  --color-faint: #78716c; /* tertiary text / labels (AA on bg) */
   --color-line: #e7e5e4; /* borders / dividers */
-  --color-overdue: #991b1b; /* THE accent — risk only */
-  --color-due-soon: #b45309; /* secondary risk signal */
+
+  /* Risk accent — THE chromatic signal, reserved for due-date risk */
+  --color-overdue: #991b1b;
+  --color-due-soon: #b45309;
+
+  /* Feedback — toast / confirm semantics.
+     {role}        solid accent (notify left border, confirm-button bg)
+     {role}-hover  button hover
+     {role}-soft   tinted notify surface
+     {role}-strong readable text on -soft */
+  --color-success: #15803d;
+  --color-success-hover: #166534;
+  --color-success-soft: #f0fdf4;
+  --color-success-strong: #14532d;
+
+  --color-warning: #b45309;
+  --color-warning-hover: #92400e;
+  --color-warning-soft: #fffbeb;
+  --color-warning-strong: #78350f;
+
+  --color-error: #b91c1c;
+  --color-error-hover: #991b1b;
+  --color-error-soft: #fef2f2;
+  --color-error-strong: #7f1d1d;
+
+  /* Misc */
+  --color-on-accent: #ffffff; /* text on a solid accent (confirm button) */
+  --color-overlay: rgb(0 0 0 / 0.4); /* modal scrim */
+  --color-shimmer: #ffffff; /* skeleton highlight (lighter than --color-line) */
 }
 
 @theme inline {
   --font-sans: var(--font-inter);
   --font-serif: var(--font-cormorant);
+}
+
+/* Dark theme — driven by the OS/browser preference. Same tokens, re-pointed so
+   every component inverts automatically. AA-verified against these values. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1c1917;
+    --color-surface: #292524;
+    --color-ink: #f5f5f4;
+    --color-muted: #d6d3d1;
+    --color-faint: #a8a29e;
+    --color-line: #44403c;
+
+    --color-overdue: #f87171;
+    --color-due-soon: #fbbf24;
+
+    --color-success: #22c55e;
+    --color-success-hover: #4ade80;
+    --color-success-soft: #16261b;
+    --color-success-strong: #bbf7d0;
+
+    --color-warning: #f59e0b;
+    --color-warning-hover: #fbbf24;
+    --color-warning-soft: #2a2110;
+    --color-warning-strong: #fde68a;
+
+    --color-error: #ef4444;
+    --color-error-hover: #f87171;
+    --color-error-soft: #2a1818;
+    --color-error-strong: #fecaca;
+
+    --color-on-accent: #1c1917;
+    --color-overlay: rgb(0 0 0 / 0.6);
+    --color-shimmer: #57534e;
+  }
+}
+
+/* Tell the UA both schemes are supported so native controls (date pickers,
+   scrollbars, form fields) follow the same preference. */
+:root {
+  color-scheme: light dark;
 }
 
 body {
@@ -29,7 +107,7 @@ body {
   background-image: linear-gradient(
     90deg,
     var(--color-line) 0%,
-    color-mix(in oklab, var(--color-line) 35%, white) 50%,
+    color-mix(in oklab, var(--color-line) 35%, var(--color-shimmer)) 50%,
     var(--color-line) 100%
   );
   background-size: 200% 100%;
