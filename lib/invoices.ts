@@ -119,8 +119,15 @@ export async function listInvoices(): Promise<Invoice[]> {
   return (rows as Row[]).map(mapRow);
 }
 
-/** Fetch a single invoice by its uuid, or null if not found. */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Fetch a single invoice by its uuid, or null if not found (or id malformed). */
 export async function getInvoiceById(id: string): Promise<Invoice | null> {
+  // Guard the uuid cast: a malformed id would make Postgres throw, which should
+  // be a clean "not found", not a 500.
+  if (!UUID_RE.test(id)) return null;
+
   const rows = (await sql.query(
     `SELECT ${COLUMNS} FROM invoices WHERE id = $1`,
     [id],
