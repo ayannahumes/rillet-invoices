@@ -1,0 +1,166 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getInvoiceById } from "@/lib/invoices";
+import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
+import { getDueDateRisk } from "@/lib/getDueDateRisk";
+import { CURRENT_DATE } from "@/lib/currentDate";
+import { formatMoney, formatDate } from "@/lib/format";
+import { StatusBadge } from "@/components/StatusBadge";
+import { RiskCell } from "@/components/RiskCell";
+
+export const dynamic = "force-dynamic";
+
+function formatPercent(rate: number): string {
+  return `${(rate * 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wider text-faint">{label}</dt>
+      <dd className="mt-1 text-ink">{children}</dd>
+    </div>
+  );
+}
+
+export default async function InvoiceDetail({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const invoice = await getInvoiceById(id);
+  if (!invoice) notFound();
+
+  const totals = calculateInvoiceTotal(invoice);
+  const risk = getDueDateRisk(invoice, CURRENT_DATE);
+
+  return (
+    <main className="mx-auto max-w-3xl px-6 py-10 md:px-8">
+      <Link href="/" className="text-sm text-muted hover:text-ink">
+        ← Invoices
+      </Link>
+
+      <header className="mt-4">
+        <h1 className="font-serif text-4xl font-medium text-ink">
+          {invoice.customerName}
+        </h1>
+        <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
+      </header>
+
+      <dl className="mt-8 grid grid-cols-1 gap-x-12 gap-y-6 sm:grid-cols-2">
+        <Field label="Status">
+          <StatusBadge status={invoice.status} />
+        </Field>
+        <Field label="Payment status">{invoice.paymentStatus}</Field>
+        <Field label="Terms">{invoice.paymentTerms ?? "—"}</Field>
+        <Field label="Due">
+          <RiskCell risk={risk} dueDate={invoice.dueDate} />
+        </Field>
+        <Field label="Bill to">
+          <div>{invoice.billingEmail ?? "—"}</div>
+          {invoice.billingAddress && (
+            <div className="text-muted">{invoice.billingAddress}</div>
+          )}
+        </Field>
+        <Field label="Currency">{invoice.currency}</Field>
+      </dl>
+
+      <section className="mt-10">
+        <h2 className="text-xs uppercase tracking-wider text-faint">
+          Line items
+        </h2>
+        <div className="mt-3 overflow-hidden rounded-lg border border-line bg-surface">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+                <th className="px-5 py-3 font-medium">Description</th>
+                <th className="px-5 py-3 font-medium">Account</th>
+                <th className="px-5 py-3 text-right font-medium">Qty</th>
+                <th className="px-5 py-3 text-right font-medium">Unit price</th>
+                <th className="px-5 py-3 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.lineItems.map((item) => (
+                <tr key={item.id} className="border-b border-line last:border-0">
+                  <td className="px-5 py-4 text-ink">{item.description}</td>
+                  <td className="px-5 py-4 text-muted">{item.accountCode}</td>
+                  <td className="px-5 py-4 text-right text-muted tabular-nums">
+                    {item.quantity.toLocaleString("en-US")}
+                  </td>
+                  <td className="px-5 py-4 text-right text-muted tabular-nums">
+                    {formatMoney(item.unitPrice, invoice.currency)}
+                  </td>
+                  <td className="px-5 py-4 text-right text-ink tabular-nums">
+                    {formatMoney(
+                      item.quantity * item.unitPrice,
+                      invoice.currency,
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Totals breakdown */}
+        <div className="mt-6 flex justify-end">
+          <dl className="w-full max-w-xs space-y-2 text-sm tabular-nums">
+            <div className="flex justify-between">
+              <dt className="text-muted">Subtotal</dt>
+              <dd className="text-ink">
+                {formatMoney(totals.subtotal, invoice.currency)}
+              </dd>
+            </div>
+            {totals.discount > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted">Discount</dt>
+                <dd className="text-ink">
+                  −{formatMoney(totals.discount, invoice.currency)}
+                </dd>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <dt className="text-muted">
+                Tax ({formatPercent(invoice.taxRate)})
+              </dt>
+              <dd className="text-ink">
+                {formatMoney(totals.taxAmount, invoice.currency)}
+              </dd>
+            </div>
+            <div className="flex justify-between border-t border-line pt-2 text-base">
+              <dt className="text-ink">Total</dt>
+              <dd className="font-medium text-ink">
+                {formatMoney(totals.total, invoice.currency)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-xs uppercase tracking-wider text-faint">Memo</h2>
+        <p className="mt-2 text-ink">{invoice.memo ?? "—"}</p>
+      </section>
+
+      <dl className="mt-10 grid grid-cols-2 gap-x-12 gap-y-6 border-t border-line pt-8 sm:grid-cols-4">
+        <Field label="Issued">{formatDate(invoice.issueDate)}</Field>
+        <Field label="Due">
+          {invoice.dueDate ? formatDate(invoice.dueDate) : "—"}
+        </Field>
+        {invoice.paidDate && (
+          <Field label="Paid">{formatDate(invoice.paidDate)}</Field>
+        )}
+        <Field label="Created">{formatDate(invoice.createdAt)}</Field>
+        <Field label="Last updated">{formatDate(invoice.updatedAt)}</Field>
+      </dl>
+    </main>
+  );
+}

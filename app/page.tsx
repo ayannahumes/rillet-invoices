@@ -1,38 +1,17 @@
-import {
-  listInvoices,
-  type PaymentStatus,
-  type InvoiceStatus,
-} from "@/lib/invoices";
+import Link from "next/link";
+import { listInvoices, type PaymentStatus } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 import { sortByTriage } from "@/lib/sortByTriage";
+import { CURRENT_DATE } from "@/lib/currentDate";
+import { formatMoney, formatDate } from "@/lib/format";
+import { StatusBadge } from "@/components/StatusBadge";
+import { RiskCell } from "@/components/RiskCell";
 
 // Always query per request — the invoices list is live data, and this is also
 // what lets a runtime DB failure surface to app/error.tsx instead of being
 // frozen into a build-time prerender.
 export const dynamic = "force-dynamic";
-
-// The seed data is authored around this date, so the crafted risk states
-// (overdue / due-soon / ok) show up. Swap for `new Date()` once data is live.
-const CURRENT_DATE = "2026-05-04";
-
-function formatMoney(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-  }).format(amount);
-}
-
-// Format a 'YYYY-MM-DD' or ISO timestamp in UTC, so dates don't drift a day
-// across server timezones.
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
 
 // "Outstanding" = issued and awaiting payment (sent & unpaid). Excludes drafts,
 // paid, and void.
@@ -53,63 +32,6 @@ function formatCurrencyTotals(totals: Map<string, number>): string {
   return [...totals.entries()]
     .map(([currency, amount]) => formatMoney(amount, currency))
     .join(" · ");
-}
-
-// Lifecycle status is encoded by weight/border — never color. Color is reserved
-// strictly for risk, so the one accent stays unmissable.
-function StatusBadge({ status }: { status: InvoiceStatus }) {
-  const base =
-    "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs leading-none";
-  switch (status) {
-    case "Draft":
-      return (
-        <span className={`${base} border border-dashed border-faint text-faint`}>
-          Draft
-        </span>
-      );
-    case "Sent":
-      return (
-        <span className={`${base} border border-line text-muted`}>Sent</span>
-      );
-    case "Paid":
-      return (
-        <span className={`${base} text-muted`}>
-          <span aria-hidden>✓</span> Paid
-        </span>
-      );
-    case "Void":
-      return <span className={`${base} text-faint line-through`}>Void</span>;
-  }
-}
-
-function RiskCell({
-  risk,
-  dueDate,
-}: {
-  risk: ReturnType<typeof getDueDateRisk>;
-  dueDate: string | null;
-}) {
-  if (!dueDate) return <span className="text-faint">—</span>;
-  const date = formatDate(dueDate);
-
-  if (risk.level === "overdue") {
-    return (
-      <span className="text-muted">
-        {date} ·{" "}
-        <span className="font-medium text-overdue">
-          {risk.daysOverdue} day{risk.daysOverdue === 1 ? "" : "s"} overdue
-        </span>
-      </span>
-    );
-  }
-  if (risk.level === "due-soon") {
-    return (
-      <span className="text-muted">
-        {date} · <span className="text-due-soon">due soon</span>
-      </span>
-    );
-  }
-  return <span className="text-muted">{date}</span>;
 }
 
 export default async function Home() {
@@ -200,10 +122,15 @@ export default async function Home() {
             {rows.map(({ invoice, totals, risk }) => (
               <tr
                 key={invoice.id}
-                className="border-b border-line last:border-0"
+                className="border-b border-line last:border-0 hover:bg-bg"
               >
                 <td className="px-5 py-4">
-                  <div className="text-ink">{invoice.customerName}</div>
+                  <Link
+                    href={`/invoices/${invoice.id}`}
+                    className="text-ink hover:underline"
+                  >
+                    {invoice.customerName}
+                  </Link>
                   <div className="text-xs text-faint">
                     {invoice.invoiceNumber}
                   </div>
