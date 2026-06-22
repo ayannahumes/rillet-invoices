@@ -18,20 +18,19 @@ export function InvoiceActions({
   status: InvoiceStatus;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const [pending, startTransition] = useTransition();
 
   const isDraft = status === "Draft";
   const isVoid = status === "Void";
   const editable = status === "Draft" || status === "Sent";
 
-  function handleDelete() {
-    if (
-      !window.confirm(
-        "Delete this draft invoice? It hasn't been issued, so it can be removed permanently. This cannot be undone.",
-      )
-    )
-      return;
+  async function handleDelete() {
+    const ok = await confirm(
+      "Delete this draft invoice? It hasn't been issued, so it can be removed permanently. This cannot be undone.",
+      { confirmLabel: "Delete" },
+    );
+    if (!ok) return;
     startTransition(async () => {
       const res = await deleteInvoiceAction(id);
       if (res.ok) {
@@ -43,14 +42,13 @@ export function InvoiceActions({
     });
   }
 
-  function handleVoid() {
-    if (
-      !window.confirm(
-        "This invoice has been issued, so it can't be deleted — removing it would break the audit trail. " +
-          "Voiding keeps the record on file and marks it cancelled. Void this invoice?",
-      )
-    )
-      return;
+  async function handleVoid() {
+    const ok = await confirm(
+      "This invoice has been issued, so it can't be deleted — removing it would break the audit trail. " +
+        "Voiding keeps the record on file and marks it cancelled. Void this invoice?",
+      { confirmLabel: "Void" },
+    );
+    if (!ok) return;
     startTransition(async () => {
       const res = await voidInvoiceAction(id);
       if (res.ok) {
