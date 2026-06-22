@@ -7,6 +7,8 @@ import { CURRENT_DATE } from "@/lib/currentDate";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
+import { ActivityLog } from "@/components/ActivityLog";
+import { InvoiceActions } from "@/components/InvoiceActions";
 import { maybeDelay } from "@/lib/devDelay";
 
 export const dynamic = "force-dynamic";
@@ -49,11 +51,14 @@ export default async function InvoiceDetail({
         ← Invoices
       </Link>
 
-      <header className="mt-4">
-        <h1 className="font-serif text-4xl font-medium text-ink">
-          {invoice.customerName}
-        </h1>
-        <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
+      <header className="mt-4 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-4xl font-medium text-ink">
+            {invoice.customerName}
+          </h1>
+          <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
+        </div>
+        <InvoiceActions id={invoice.id} status={invoice.status} />
       </header>
 
       <dl className="mt-8 grid grid-cols-1 gap-x-12 gap-y-6 sm:grid-cols-2">
@@ -163,6 +168,8 @@ export default async function InvoiceDetail({
         <Field label="Created">{formatDate(invoice.createdAt)}</Field>
         <Field label="Last updated">{formatDate(invoice.updatedAt)}</Field>
       </dl>
+
+      <ActivityLog activity={invoice.activity} />
     </main>
   );
 }

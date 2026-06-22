@@ -15,3 +15,15 @@ export function formatDate(value: string): string {
     timeZone: "UTC",
   }).format(new Date(value));
 }
+
+// Date + time for activity timestamps (real instants).
+export function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}

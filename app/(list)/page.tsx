@@ -45,12 +45,12 @@ export default async function Home() {
       <main className="mx-auto flex min-h-[60vh] max-w-5xl flex-col items-center justify-center px-6 text-center">
         <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
         <p className="mt-3 text-muted">No invoices yet.</p>
-        <button
-          type="button"
+        <Link
+          href="/invoices/new"
           className="mt-6 rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
         >
           New invoice
-        </button>
+        </Link>
       </main>
     );
   }
@@ -81,7 +81,15 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
-      <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
+        <Link
+          href="/invoices/new"
+          className="rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
+        >
+          New invoice
+        </Link>
+      </div>
 
       <section className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
         <div>

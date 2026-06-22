@@ -59,6 +59,21 @@ export interface CreateInvoiceInput {
   activity?: ActivityEntry[];
 }
 
+export interface UpdateInvoiceInput {
+  invoiceNumber: string;
+  customerName: string;
+  billingEmail?: string | null;
+  billingAddress?: string | null;
+  paymentTerms?: string | null;
+  currency: string;
+  issueDate: string;
+  dueDate?: string | null;
+  memo?: string | null;
+  taxRate: number;
+  discount: number;
+  lineItems: LineItem[];
+}
+
 // Date columns are cast to text so they come back as 'YYYY-MM-DD' strings rather
 // than Date objects (which would shift across timezones).
 const COLUMNS = `
@@ -171,6 +186,117 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<Invoice>
       JSON.stringify(input.activity ?? []),
     ],
   )) as Row[];
+
+  return mapRow(rows[0]);
+}
+
+/** Build an activity entry for the audit trail. */
+function activityEntry(action: string): ActivityEntry {
+  return {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    actor: "You",
+    action,
+  };
+}
+
+/**
+ * Update an invoice's editable fields + line items, append an audit entry, and
+ * return the updated record (null if not found / malformed id).
+ */
+export async function updateInvoice(
+  id: string,
+  input: UpdateInvoiceInput,
+): Promise<Invoice | null> {
+  if (!UUID_RE.test(id)) return null;
+
+  const rows = (await sql.query(
+    `UPDATE invoices SET
+       invoice_number  = $2,
+       customer_name   = $3,
+       billing_email   = $4,
+       billing_address = $5,
+       payment_terms   = $6,
+       currency        = $7,
+       issue_date      = $8,
+       due_date        = $9,
+       memo            = $10,
+       tax_rate        = $11,
+       discount        = $12,
+       line_items      = $13::jsonb,
+       activity        = activity || $14::jsonb,
+       updated_at      = now()
+     WHERE id = $1
+     RETURNING ${COLUMNS}`,
+    [
+      id,
+      input.invoiceNumber,
+      input.customerName,
+      input.billingEmail ?? null,
+      input.billingAddress ?? null,
+      input.paymentTerms ?? null,
+      input.currency,
+      input.issueDate,
+      input.dueDate ?? null,
+      input.memo ?? null,
+      input.taxRate,
+      input.discount,
+      JSON.stringify(input.lineItems),
+      JSON.stringify([activityEntry("Edited invoice")]),
+    ],
+  )) as Row[];
+
+  return rows.length ? mapRow(rows[0]) : null;
+}
+
+/**
+ * Delete a DRAFT invoice. Rejects non-drafts (the backend enforces the rule,
+ * not just the UI). Throws if the invoice is not a draft or does not exist.
+ */
+export async function deleteInvoiceDraft(id: string): Promise<void> {
+  if (!UUID_RE.test(id)) throw new Error("Invoice not found.");
+
+  const rows = (await sql.query(
+    `DELETE FROM invoices WHERE id = $1 AND status = 'Draft' RETURNING id`,
+    [id],
+  )) as Row[];
+
+  if (rows.length === 0) {
+    const existing = await getInvoiceById(id);
+    if (existing) {
+      throw new Error("Only draft invoices can be deleted. Void it instead.");
+    }
+    throw new Error("Invoice not found.");
+  }
+}
+
+/**
+ * Void a non-draft invoice: flip status to Void/Voided, keep the row, and write
+ * an activity entry. Throws for drafts (which are deleted, not voided).
+ */
+export async function voidInvoice(id: string): Promise<Invoice | null> {
+  if (!UUID_RE.test(id)) return null;
+
+  const rows = (await sql.query(
+    `UPDATE invoices SET
+       status         = 'Void',
+       payment_status = 'Voided',
+       activity       = activity || $2::jsonb,
+       updated_at     = now()
+     WHERE id = $1 AND status <> 'Draft' AND status <> 'Void'
+     RETURNING ${COLUMNS}`,
+    [id, JSON.stringify([activityEntry("Voided invoice")])],
+  )) as Row[];
+
+  if (rows.length === 0) {
+    const existing = await getInvoiceById(id);
+    if (!existing) throw new Error("Invoice not found.");
+    if (existing.status === "Draft") {
+      throw new Error("Draft invoices are deleted, not voided.");
+    }
+    // Already void — return it unchanged.
+    return existing;
+  }
 
   return mapRow(rows[0]);
 }
