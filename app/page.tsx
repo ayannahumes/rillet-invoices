@@ -1,4 +1,4 @@
-import { listInvoices } from "@/lib/invoices";
+import { listInvoices, type PaymentStatus } from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 
@@ -40,6 +40,27 @@ function riskLabel(
   }
 }
 
+// "Outstanding" = issued and awaiting payment (sent & unpaid). Excludes drafts,
+// paid, and void.
+const OUTSTANDING_STATUSES: PaymentStatus[] = ["Open", "Overdue"];
+
+function sumByCurrency(
+  items: { currency: string; amount: number }[],
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const { currency, amount } of items) {
+    totals.set(currency, (totals.get(currency) ?? 0) + amount);
+  }
+  return totals;
+}
+
+function formatCurrencyTotals(totals: Map<string, number>): string {
+  if (totals.size === 0) return "—";
+  return [...totals.entries()]
+    .map(([currency, amount]) => formatMoney(amount, currency))
+    .join(" · ");
+}
+
 export default async function Home() {
   const invoices = await listInvoices();
 
@@ -58,9 +79,35 @@ export default async function Home() {
     risk: getDueDateRisk(invoice, CURRENT_DATE),
   }));
 
+  const outstanding = sumByCurrency(
+    rows
+      .filter((r) => OUTSTANDING_STATUSES.includes(r.invoice.paymentStatus))
+      .map((r) => ({ currency: r.invoice.currency, amount: r.totals.total })),
+  );
+
+  const overdueRows = rows.filter((r) => r.risk.level === "overdue");
+  const overdue = sumByCurrency(
+    overdueRows.map((r) => ({
+      currency: r.invoice.currency,
+      amount: r.totals.total,
+    })),
+  );
+
   return (
     <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <h1>Invoices</h1>
+
+      <section style={{ marginBottom: "1.5rem" }}>
+        <div>
+          <strong>Outstanding:</strong> {formatCurrencyTotals(outstanding)}
+        </div>
+        <div>
+          <strong>Overdue:</strong> {overdueRows.length} invoice
+          {overdueRows.length === 1 ? "" : "s"}
+          {overdueRows.length > 0 ? ` · ${formatCurrencyTotals(overdue)}` : ""}
+        </div>
+      </section>
+
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
         <thead>
           <tr>
