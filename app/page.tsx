@@ -1,4 +1,8 @@
-import { listInvoices, type PaymentStatus } from "@/lib/invoices";
+import {
+  listInvoices,
+  type PaymentStatus,
+  type InvoiceStatus,
+} from "@/lib/invoices";
 import { calculateInvoiceTotal } from "@/lib/calculateInvoiceTotal";
 import { getDueDateRisk } from "@/lib/getDueDateRisk";
 
@@ -24,22 +28,6 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-function riskLabel(
-  risk: ReturnType<typeof getDueDateRisk>,
-  dueDate: string | null,
-): string {
-  if (!dueDate) return "—";
-  const date = formatDate(dueDate);
-  switch (risk.level) {
-    case "overdue":
-      return `${date} · ${risk.daysOverdue} day${risk.daysOverdue === 1 ? "" : "s"} overdue`;
-    case "due-soon":
-      return `${date} · due soon`;
-    default:
-      return date;
-  }
-}
-
 // "Outstanding" = issued and awaiting payment (sent & unpaid). Excludes drafts,
 // paid, and void.
 const OUTSTANDING_STATUSES: PaymentStatus[] = ["Open", "Overdue"];
@@ -61,14 +49,77 @@ function formatCurrencyTotals(totals: Map<string, number>): string {
     .join(" · ");
 }
 
+// Lifecycle status is encoded by weight/border — never color. Color is reserved
+// strictly for risk, so the one accent stays unmissable.
+function StatusBadge({ status }: { status: InvoiceStatus }) {
+  const base =
+    "inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs leading-none";
+  switch (status) {
+    case "Draft":
+      return (
+        <span className={`${base} border border-dashed border-faint text-faint`}>
+          Draft
+        </span>
+      );
+    case "Sent":
+      return (
+        <span className={`${base} border border-line text-muted`}>Sent</span>
+      );
+    case "Paid":
+      return (
+        <span className={`${base} text-muted`}>
+          <span aria-hidden>✓</span> Paid
+        </span>
+      );
+    case "Void":
+      return <span className={`${base} text-faint line-through`}>Void</span>;
+  }
+}
+
+function RiskCell({
+  risk,
+  dueDate,
+}: {
+  risk: ReturnType<typeof getDueDateRisk>;
+  dueDate: string | null;
+}) {
+  if (!dueDate) return <span className="text-faint">—</span>;
+  const date = formatDate(dueDate);
+
+  if (risk.level === "overdue") {
+    return (
+      <span className="text-muted">
+        {date} ·{" "}
+        <span className="font-medium text-overdue">
+          {risk.daysOverdue} day{risk.daysOverdue === 1 ? "" : "s"} overdue
+        </span>
+      </span>
+    );
+  }
+  if (risk.level === "due-soon") {
+    return (
+      <span className="text-muted">
+        {date} · <span className="text-due-soon">due soon</span>
+      </span>
+    );
+  }
+  return <span className="text-muted">{date}</span>;
+}
+
 export default async function Home() {
   const invoices = await listInvoices();
 
   if (invoices.length === 0) {
     return (
-      <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-        <h1>Invoices</h1>
-        <p>No invoices.</p>
+      <main className="mx-auto flex min-h-[60vh] max-w-5xl flex-col items-center justify-center px-6 text-center">
+        <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
+        <p className="mt-3 text-muted">No invoices yet.</p>
+        <button
+          type="button"
+          className="mt-6 rounded border border-line px-4 py-2 text-sm text-ink transition-colors hover:bg-surface"
+        >
+          New invoice
+        </button>
       </main>
     );
   }
@@ -94,64 +145,76 @@ export default async function Home() {
   );
 
   return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>Invoices</h1>
+    <main className="mx-auto max-w-5xl px-6 py-10 md:px-8">
+      <h1 className="font-serif text-4xl font-medium text-ink">Invoices</h1>
 
-      <section style={{ marginBottom: "1.5rem" }}>
+      <section className="mt-8 flex flex-wrap gap-x-16 gap-y-6">
         <div>
-          <strong>Outstanding:</strong> {formatCurrencyTotals(outstanding)}
+          <div className="text-xs uppercase tracking-wider text-faint">
+            Outstanding
+          </div>
+          <div className="mt-1 text-xl text-ink tabular-nums">
+            {formatCurrencyTotals(outstanding)}
+          </div>
         </div>
         <div>
-          <strong>Overdue:</strong> {overdueRows.length} invoice
-          {overdueRows.length === 1 ? "" : "s"}
-          {overdueRows.length > 0 ? ` · ${formatCurrencyTotals(overdue)}` : ""}
+          <div className="text-xs uppercase tracking-wider text-faint">
+            Overdue
+          </div>
+          <div className="mt-1 text-xl tabular-nums">
+            <span className={overdueRows.length > 0 ? "text-overdue" : "text-ink"}>
+              {overdueRows.length} invoice{overdueRows.length === 1 ? "" : "s"}
+            </span>
+            {overdueRows.length > 0 && (
+              <span className="text-muted">
+                {" · "}
+                {formatCurrencyTotals(overdue)}
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
-        <thead>
-          <tr>
-            {["Customer", "Status", "Due / risk", "Amount", "Updated"].map(
-              (h) => (
-                <th
-                  key={h}
-                  style={{
-                    textAlign: "left",
-                    borderBottom: "2px solid #000",
-                    padding: "0.5rem",
-                  }}
-                >
-                  {h}
-                </th>
-              ),
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ invoice, totals, risk }) => (
-            <tr key={invoice.id}>
-              <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>
-                <div>{invoice.customerName}</div>
-                <div style={{ fontSize: "0.8em", color: "#666" }}>
-                  {invoice.invoiceNumber}
-                </div>
-              </td>
-              <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>
-                {invoice.status}
-              </td>
-              <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>
-                {riskLabel(risk, invoice.dueDate)}
-              </td>
-              <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>
-                {formatMoney(totals.total, invoice.currency)}
-              </td>
-              <td style={{ borderBottom: "1px solid #ccc", padding: "0.5rem" }}>
-                {formatDate(invoice.updatedAt)}
-              </td>
+      <div className="mt-10 overflow-hidden rounded-lg border border-line bg-surface">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-xs uppercase tracking-wider text-faint">
+              <th className="px-5 py-3 font-medium">Customer</th>
+              <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Due / risk</th>
+              <th className="px-5 py-3 text-right font-medium">Amount</th>
+              <th className="px-5 py-3 font-medium">Updated</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(({ invoice, totals, risk }) => (
+              <tr
+                key={invoice.id}
+                className="border-b border-line last:border-0"
+              >
+                <td className="px-5 py-4">
+                  <div className="text-ink">{invoice.customerName}</div>
+                  <div className="text-xs text-faint">
+                    {invoice.invoiceNumber}
+                  </div>
+                </td>
+                <td className="px-5 py-4">
+                  <StatusBadge status={invoice.status} />
+                </td>
+                <td className="px-5 py-4">
+                  <RiskCell risk={risk} dueDate={invoice.dueDate} />
+                </td>
+                <td className="px-5 py-4 text-right text-ink tabular-nums">
+                  {formatMoney(totals.total, invoice.currency)}
+                </td>
+                <td className="px-5 py-4 text-muted">
+                  {formatDate(invoice.updatedAt)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </main>
   );
 }
