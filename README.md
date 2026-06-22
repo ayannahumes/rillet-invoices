@@ -1,11 +1,47 @@
 # Rillet Invoice Workspace
 
-A CRUD invoice workspace for an accounting manager: create, review, edit, and
-delete customer invoices while keeping the data trustworthy and audit-ready. The
-interface aims to feel like serious finance software — precise, calm, dense
+A CRUD invoice workspace for an accounting manager: create, review, edit, void,
+and delete customer invoices while keeping the data trustworthy and audit-ready.
+The interface aims to feel like serious finance software — precise, calm, dense
 without clutter, and easy to scan.
 
-## Running it locally
+**Point of view: calm by default, depth on demand.** The list surfaces only what
+you need to triage and trust (status, due-date risk, amount); detail and history
+reveal themselves when you ask for them.
+
+---
+
+## Live app
+
+**▶ <!-- TODO: paste the deployed URL here, e.g. https://rillet-invoices.vercel.app -->**
+
+> If the link is access-protected, disable deployment protection so reviewers can
+> open it without logging in. To evaluate locally instead, see **Run locally**.
+
+## What to try (≈2-minute tour)
+
+The seed data is authored so the triage states are visible immediately.
+
+1. **The list** — rows are sorted by triage priority (overdue → due-soon →
+   active → paid → void), and the cards up top show **Outstanding and Overdue
+   grouped by currency** (USD and CAD are never summed together). Risk is the
+   only thing in color.
+2. **Open an overdue invoice** — see line items, the **totals breakdown**
+   (subtotal → discount → tax → total, all derived), both statuses, customer
+   details, memo, and a collapsed **activity log**.
+3. **Create one** (New invoice) — watch totals recompute live as you type; enter
+   tax as a percent (e.g. `8.5`); submit with a blank field to see inline
+   validation move focus to the first problem.
+4. **Edit it** — change fields or add/remove line items; totals follow.
+5. **The signature decision — void vs. delete.** On a **draft**, the action is
+   **Delete** (it never went out). On a **sent/paid** invoice, the only
+   destructive action is **Void** — it keeps the record and writes an activity
+   entry, because deleting an issued invoice would destroy the audit trail. Both
+   ask for confirmation in a focus-trapped dialog.
+6. **Switch your OS to dark mode** and **shrink to a phone width** — both adapt
+   (no horizontal scroll; the table becomes stacked cards).
+
+## Run locally
 
 Prerequisites: Node 20+ and a Postgres database (built against
 [Neon](https://neon.tech) serverless, but any Postgres works).
@@ -30,37 +66,39 @@ Other scripts: `npm run build` / `npm start` (production), `npm test` (Vitest),
 > The dev server reads `.env.local`; the migrate/seed scripts run with
 > `node --env-file=.env.local`. Both fail loudly if `DATABASE_URL` is unset.
 
-## Design decisions
+## Design decisions (and why they fit a finance workflow)
 
-**One accent, reserved for risk.** The palette is warm grayscale with a single
-chromatic accent used *only* for due-date risk (overdue red, due-soon amber).
-Lifecycle status (Draft/Sent/Paid/Void) is encoded with weight, border, and
-strikethrough — never color — so the one accent that does appear is unmissable.
-For an audit-sensitive tool that restraint is the point: color means "look
-here," and it never cries wolf.
+An accounting manager needs to **trust the numbers, triage fast, and never
+corrupt the record.** Every choice below maps to one of those needs.
 
-**Status, payment, due-date risk, and amount are visually distinct.** These are
-four separate signals and the list keeps them separate: a `StatusBadge`
-(lifecycle), the payment status, a `DueDisplay`/`RiskCell` that surfaces risk in
-words *and* color, and right-aligned tabular-figure amounts. Voided rows strike
-the customer name and amount and drop the due date to "—"; drafts show "Not
-sent," because an unissued invoice has no deadline yet.
-
-**Triage-first list.** The list sorts by triage priority (overdue → due-soon →
-active → paid → void) and leads with per-currency Outstanding and Overdue
-totals, so the busiest question — "what needs attention and how much is at
-risk" — is answered before any scrolling. Currencies are never summed together.
-
-**Forms that prevent mistakes.** Inline validation with field-associated errors,
-focus jumps to the first invalid field on submit, live-recomputed totals as you
-type, and a confirmation step for destructive actions. Delete is only offered
-for drafts; issued invoices are *voided* (kept on file) so the audit trail is
-never broken — and that rule is enforced in the backend, not just the UI.
-
-**Totals are always derived, never stored.** Subtotal, tax, and total are
-recomputed from line items + discount + tax rate on every render, rounded to
-cents at each step. Persisting them would risk drift between the stored number
-and the inputs.
+- **One accent, reserved for risk.** Warm grayscale throughout; the only color
+  (overdue red / due-soon amber) marks *due-date risk* and nothing else.
+  Lifecycle status is encoded by weight, border, and strikethrough instead.
+  *Why it fits:* in an audit-sensitive tool, color has to mean "look here" — if
+  everything is colored, nothing is — so the lone accent always points at what's
+  financially urgent.
+- **Four signals kept visually distinct** — lifecycle status, payment status,
+  due-date risk, and amount each render differently (`StatusBadge`, payment text,
+  `DueDisplay`, right-aligned tabular figures). *Why it fits:* an accountant
+  reasons about these independently ("sent, unpaid, and now overdue"); collapsing
+  them would hide state they need to act on.
+- **Triage-first list.** Sorted overdue → due-soon → active → paid → void, led by
+  Outstanding/Overdue totals **grouped by currency** (never summed across — you
+  can't add CAD to USD). *Why it fits:* it answers the manager's first question —
+  what needs attention and how much is at risk — before any scrolling.
+- **Void vs. delete, enforced server-side.** A draft can be **deleted** (it never
+  went out); an issued invoice can only be **voided** — the row and number are
+  kept and an activity entry is written. *Why it fits:* deleting a sent invoice
+  destroys the audit trail, so the workflow makes that impossible, not just
+  discouraged.
+- **Mistake-resistant forms.** Field-level validation with focus sent to the
+  first error, live-recomputed totals, tax entered as a percent (stored as a
+  fraction), and confirm-to-destroy. *Why it fits:* invoice data is high-stakes
+  and repetitive; the form should make the wrong number hard to enter.
+- **Totals derived, never stored.** Subtotal → discount → tax → total are
+  recomputed from the inputs on every render and rounded to cents. *Why it fits:*
+  a stored total that silently drifts from its line items is exactly the
+  untrustworthy number this user can't tolerate.
 
 ## Technical decisions
 
@@ -68,41 +106,54 @@ and the inputs.
   data directly; **Server Actions** handle create/update/delete/void, so
   mutations update the UI without a full refresh (`revalidatePath` +
   client-side `router` navigation).
-- **Persistence: Postgres, single-model.** One `invoices` table. Customer
-  details are inline columns; line items and activity/history are embedded
-  `jsonb`. This matches the brief's "single-model" guidance and keeps reads
-  simple — the tradeoff is that line items aren't independently queryable, which
-  is fine at this scope. Forward-only SQL migrations live in `db/migrations/`;
-  schema and seed are trivial to inspect.
-- **Validation at the boundary.** `validateInvoiceForm` runs inside the Server
-  Actions (not just the form), and the data layer enforces state invariants
-  (only drafts deletable, only non-draft/non-void voidable) with clear errors.
+- **Persistence: Postgres, single-model.** One `invoices` table queried with
+  parameterized SQL via `@neondatabase/serverless`. Customer details are inline
+  columns; line items and activity/history are embedded `jsonb`. This matches
+  the brief's "single-model" guidance and keeps reads simple — the tradeoff is
+  that line items aren't independently queryable, fine at this scope.
+  Forward-only SQL migrations live in `db/migrations/`; schema and seed are
+  trivial to inspect.
+- **Validation at the boundary.** `validateInvoiceForm` (a tested pure function)
+  runs inside the Server Actions, not just the form, and the data layer enforces
+  state invariants (only drafts deletable; only non-draft/non-void voidable)
+  with clear errors. Totals are recomputed server-trusted, never read from the
+  client.
 - **Accessibility.** Field/label association and error wiring (`aria-invalid` +
-  `aria-describedby`), a focus-trapped confirm dialog that returns focus and
+  `aria-describedby`), a focus-trapped confirm dialog that restores focus and
   makes the rest of the page `inert`, accessible tables (`scope`, captions), a
   global keyboard focus ring, and WCAG-AA-verified contrast in both light and a
-  `prefers-color-scheme` **dark mode** (all color is centralized as design
-  tokens in `app/globals.css`).
-- **Testing (Vitest).** ~70 tests covering the logic that must not break —
-  totals math, due-date risk, triage sort, validation, the delete/void
-  invariants, the Server Actions — plus interaction tests (the confirm dialog's
-  resolve/cancel/Escape/focus/inert contract, and the form's
-  validation/focus/submit flow) via Testing Library + happy-dom.
+  `prefers-color-scheme` **dark mode** (all color centralized as design tokens
+  in `app/globals.css`).
+- **Testing (Vitest + Testing Library).** ~83 tests covering the logic that must
+  not break — totals math, due-date risk, triage sort, validation, percent
+  conversion, the delete/void invariants, the Server Actions — plus interaction
+  tests (the confirm dialog's resolve/cancel/Escape/focus/inert contract and the
+  form's validation/focus/submit flow) via happy-dom.
 
 ## Data model
 
-A single `Invoice` (see `db/migrations/0001_init.sql`): identity + embedded
-customer/billing fields, `status` (lifecycle) and `payment_status` (distinct
-dimensions), `currency`, issue/due/paid dates, `memo`, `tax_rate`, `discount`,
-plus embedded `line_items` and `activity` (`jsonb`). Derived totals are never
-columns.
+A single `Invoice` (see [`db/migrations/0001_init.sql`](db/migrations/0001_init.sql)):
+identity + embedded customer/billing fields, `status` (lifecycle) and
+`payment_status` (distinct dimensions), `currency`, issue/due/paid dates, `memo`,
+`tax_rate`, `discount`, plus embedded `line_items` and `activity` (`jsonb`).
+Derived totals are never columns.
 
-## Tradeoffs & what's intentionally unfinished
+## Tradeoffs & what's next
 
-- **LLM Invoice Assistant (bonus): not implemented.** The CRUD workflow, craft,
-  and correctness were prioritized over breadth.
-- **Single tenant, no auth** — per the brief.
-- **Embedded line items** trade queryability for model simplicity (intentional).
-- The detail page's secondary dates footer shows the due date as a plain date
-  (no risk accent), while the primary "Due" field carries the full risk
-  treatment — deliberate, to keep the footer a neutral facts list.
+Intentionally out of scope for this build, in rough priority order:
+
+- **LLM Invoice Assistant** (the bonus) — paste messy text → structured,
+  human-reviewed draft. Walled off behind "core excellent first."
+- **Filtering / search UI** beyond the smart default sort.
+- **FX / base-currency consolidation** — currencies are shown natively and never
+  summed across; a USD-base rollup with live rates is the next step.
+- **Dedicated lifecycle transitions** (Send, Mark Paid) as first-class actions.
+- **Void reason capture** + richer audit entries (current void writes a minimal
+  activity entry).
+- **Schema-based validation** (e.g. Zod) and a **full a11y audit** — today's
+  validation is a tested pure function and a11y covers the main flows.
+
+Also intentional: **single tenant, no auth** (per the brief); **embedded line
+items** trade queryability for model simplicity; the detail page's secondary
+dates footer shows the due date as a plain date while the primary "Due" field
+carries the full risk treatment.

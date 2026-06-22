@@ -58,7 +58,7 @@ export function validateInvoiceForm(input: InvoiceFormInput): {
   }
 
   if (!Number.isFinite(input.taxRate) || input.taxRate < 0 || input.taxRate > 1) {
-    errors.taxRate = "Tax rate must be between 0 and 1 (e.g. 0.085).";
+    errors.taxRate = "Tax rate must be between 0% and 100%.";
   }
   if (!Number.isFinite(input.discount) || input.discount < 0) {
     errors.discount = "Discount cannot be negative.";

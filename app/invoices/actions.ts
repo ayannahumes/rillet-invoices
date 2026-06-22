@@ -6,6 +6,7 @@ import {
   updateInvoice,
   deleteInvoiceDraft,
   voidInvoice,
+  activityEntry,
   type LineItem,
 } from "@/lib/invoices";
 import {
@@ -34,15 +35,6 @@ export type FormActionResult =
   | { ok: false; errors: InvoiceFormErrors };
 export type MutationResult = { ok: true } | { ok: false; error: string };
 
-function entry(action: string) {
-  return {
-    id: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    actor: "You",
-    action,
-  };
-}
-
 export async function createInvoiceAction(
   input: InvoiceActionInput,
 ): Promise<FormActionResult> {
@@ -53,7 +45,7 @@ export async function createInvoiceAction(
     ...input,
     status: "Draft",
     paymentStatus: "Unsent",
-    activity: [entry("Created invoice")],
+    activity: [activityEntry("Created invoice")],
   });
 
   revalidatePath("/");

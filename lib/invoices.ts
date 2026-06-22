@@ -190,8 +190,9 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<Invoice>
   return mapRow(rows[0]);
 }
 
-/** Build an activity entry for the audit trail. */
-function activityEntry(action: string): ActivityEntry {
+/** Build an activity entry for the audit trail. Shared by the data layer (edit/
+ *  void) and the action layer (create) so the entry shape stays in one place. */
+export function activityEntry(action: string): ActivityEntry {
   return {
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),

@@ -6,6 +6,12 @@ vi.mock("@/lib/invoices", () => ({
   updateInvoice: vi.fn(),
   deleteInvoiceDraft: vi.fn(),
   voidInvoice: vi.fn(),
+  activityEntry: (action: string) => ({
+    id: "test-id",
+    timestamp: "2026-01-01T00:00:00Z",
+    actor: "You",
+    action,
+  }),
 }));
 
 import { revalidatePath } from "next/cache";

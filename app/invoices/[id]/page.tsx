@@ -8,6 +8,7 @@ import { CURRENT_DATE } from "@/lib/currentDate";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DueDisplay } from "@/components/DueDisplay";
+import { TotalsBreakdown } from "@/components/TotalsBreakdown";
 import { ActivityLog } from "@/components/ActivityLog";
 import { InvoiceActions } from "@/components/InvoiceActions";
 import { PageShell } from "@/components/ui/PageShell";
@@ -21,10 +22,6 @@ export const dynamic = "force-dynamic";
 
 // Deduped within a request so generateMetadata and the page share one query.
 const loadInvoice = cache(getInvoiceById);
-
-function formatPercent(rate: number): string {
-  return `${(rate * 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}%`;
-}
 
 export async function generateMetadata({
   params,
@@ -162,36 +159,11 @@ export default async function InvoiceDetail({
 
         {/* Totals breakdown */}
         <div className="mt-6 flex justify-end">
-          <dl className="w-full max-w-xs space-y-2 text-sm tabular-nums">
-            <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="text-ink">
-                {formatMoney(totals.subtotal, invoice.currency)}
-              </dd>
-            </div>
-            {totals.discount > 0 && (
-              <div className="flex justify-between">
-                <dt className="text-muted">Discount</dt>
-                <dd className="text-ink">
-                  −{formatMoney(totals.discount, invoice.currency)}
-                </dd>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <dt className="text-muted">
-                Tax ({formatPercent(invoice.taxRate)})
-              </dt>
-              <dd className="text-ink">
-                {formatMoney(totals.taxAmount, invoice.currency)}
-              </dd>
-            </div>
-            <div className="flex justify-between border-t border-line pt-2 text-base">
-              <dt className="text-ink">Total</dt>
-              <dd className="font-medium text-ink">
-                {formatMoney(totals.total, invoice.currency)}
-              </dd>
-            </div>
-          </dl>
+          <TotalsBreakdown
+            totals={totals}
+            currency={invoice.currency}
+            taxRate={invoice.taxRate}
+          />
         </div>
       </section>
 
