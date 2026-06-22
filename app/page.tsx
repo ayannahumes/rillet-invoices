@@ -8,6 +8,7 @@ import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
 import { InvoiceRow } from "@/components/InvoiceRow";
+import { maybeDelay } from "@/lib/devDelay";
 
 // Always query per request — the invoices list is live data, and this is also
 // what lets a runtime DB failure surface to app/error.tsx instead of being
@@ -36,6 +37,7 @@ function formatCurrencyTotals(totals: Map<string, number>): string {
 }
 
 export default async function Home() {
+  await maybeDelay(); // dev-only: SLOW_MS=2500 npm run start
   const invoices = await listInvoices();
 
   if (invoices.length === 0) {

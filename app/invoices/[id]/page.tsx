@@ -7,6 +7,7 @@ import { CURRENT_DATE } from "@/lib/currentDate";
 import { formatMoney, formatDate } from "@/lib/format";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RiskCell } from "@/components/RiskCell";
+import { maybeDelay } from "@/lib/devDelay";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export default async function InvoiceDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await maybeDelay(); // dev-only: SLOW_MS=2500 npm run start
   const invoice = await getInvoiceById(id);
   if (!invoice) notFound();
 
