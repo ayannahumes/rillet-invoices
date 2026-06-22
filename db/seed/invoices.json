@@ -222,6 +222,52 @@
           "action": "Voided duplicate invoice"
         }
       ]
+    },
+    {
+      "id": "inv-2026-0415",
+      "invoiceNumber": "INV-2026-0415",
+      "customerName": "Cedar Grove Logistics",
+      "billingEmail": "ap@cedargrove.example",
+      "billingAddress": "77 West Wacker Drive, Chicago, IL 60601",
+      "paymentTerms": "Net 15",
+      "status": "Sent",
+      "paymentStatus": "Open",
+      "currency": "USD",
+      "issueDate": "2026-04-23",
+      "dueDate": "2026-05-08",
+      "memo": "Q2 onboarding and integration services.",
+      "taxRate": 0.085,
+      "discount": 0,
+      "lineItems": [
+        {
+          "id": "li-9",
+          "description": "Onboarding package",
+          "quantity": 1,
+          "unitPrice": 5000,
+          "accountCode": "4100"
+        },
+        {
+          "id": "li-10",
+          "description": "API integration support",
+          "quantity": 8,
+          "unitPrice": 200,
+          "accountCode": "4100"
+        }
+      ],
+      "activity": [
+        {
+          "id": "act-11",
+          "timestamp": "2026-04-23T09:30:00-04:00",
+          "actor": "Maya Chen",
+          "action": "Created invoice"
+        },
+        {
+          "id": "act-12",
+          "timestamp": "2026-04-23T09:45:00-04:00",
+          "actor": "Maya Chen",
+          "action": "Sent invoice to customer"
+        }
+      ]
     }
   ],
   "bonusLlmExamples": [
