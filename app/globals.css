@@ -23,3 +23,30 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Skeleton shimmer: a soft highlight sweeping across a grayscale bar. */
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-line) 0%,
+    color-mix(in oklab, var(--color-line) 35%, white) 50%,
+    var(--color-line) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+  }
+}
