@@ -12,7 +12,7 @@ export function InvoicesHeader() {
       <div>
         <Heading>Invoices</Heading>
         <p className="mt-1 text-muted">
-          {ORG.name} <span aria-hidden="true">·</span> base currency{" "}
+          {ORG.name} <span aria-hidden="true">·</span> Base Currency{" "}
           {ORG.baseCurrency}
         </p>
       </div>

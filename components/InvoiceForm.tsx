@@ -9,7 +9,7 @@ import { num } from "@/lib/parseNumber";
 import { fractionToPercent, percentToFraction } from "@/lib/percent";
 import { buttonClass } from "@/components/ui/Button";
 import { TotalsBreakdown } from "@/components/TotalsBreakdown";
-import { INPUT } from "@/components/fieldStyles";
+import { INPUT, inputClass } from "@/components/fieldStyles";
 import {
   LineItemsEditor,
   emptyRow,
@@ -24,9 +24,9 @@ import type {
 const LABEL = "block eyebrow";
 
 /**
- * A labelled text input with its error wired up for assistive tech: the `<label>`
- * is associated via `htmlFor`/`id`, and when there's an error the input gets
- * `aria-invalid` plus `aria-describedby` pointing at the error message.
+ * A labelled text input. An error gives it a red border + message and wires up
+ * assistive tech (`aria-invalid` + `aria-describedby`). Blur validation is
+ * handled by a single `onBlur` on the parent <form> (React's onBlur bubbles).
  */
 function TextField({
   id,
@@ -57,7 +57,7 @@ function TextField({
         id={id}
         type={type}
         placeholder={placeholder}
-        className={INPUT}
+        className={inputClass(!!error)}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={error ? true : undefined}
@@ -70,6 +70,14 @@ function TextField({
       )}
     </div>
   );
+}
+
+// Map a blurred input's DOM id to its validation key. Top-level fields use their
+// id directly; line-item inputs (`line-2-quantity`) map to `lineItems.2.quantity`.
+function fieldKeyFromId(id: string): string | null {
+  if (!id) return null;
+  const m = id.match(/^line-(\d+)-(description|quantity|unitPrice)$/);
+  return m ? `lineItems.${m[1]}.${m[2]}` : id;
 }
 
 export function InvoiceForm({
@@ -164,8 +172,30 @@ export function InvoiceForm({
     };
   }
 
+  // Validate a single field and set/clear only its error, so blurring one field
+  // never flags fields the user hasn't touched yet.
+  function validateField(key: string) {
+    const { errors: all } = validateInvoiceForm(buildInput());
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (all[key]) next[key] = all[key];
+      else delete next[key];
+      return next;
+    });
+  }
+
+  // One blur handler for the whole form (React's onBlur bubbles from the
+  // focused input), so every field validates as it loses focus.
+  function handleBlur(e: React.FocusEvent<HTMLFormElement>) {
+    const key = fieldKeyFromId((e.target as HTMLElement).id);
+    if (key) validateField(key);
+  }
+
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Block re-entry while a submit is in flight (the button is disabled, but
+    // Enter in a field could otherwise re-fire this and double-submit).
+    if (pending) return;
     const input = buildInput();
     const { valid, errors: errs } = validateInvoiceForm(input);
     if (!valid) {
@@ -178,7 +208,10 @@ export function InvoiceForm({
     startTransition(async () => {
       const result = await action(input);
       if (result.ok) {
-        toast(initial ? "Invoice saved" : "Invoice created", "success");
+        toast(
+          `Invoice ${input.invoiceNumber} ${initial ? "saved" : "created"}`,
+          "success",
+        );
         router.push(`/invoices/${result.id}`);
       } else {
         setErrors(result.errors);
@@ -189,7 +222,13 @@ export function InvoiceForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="space-y-8">
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      onBlur={handleBlur}
+      noValidate
+      className="space-y-8"
+    >
       <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
         <TextField
           id="customerName"

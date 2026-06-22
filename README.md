@@ -29,8 +29,8 @@ The seed data is authored so the triage states are visible immediately.
    (subtotal → discount → tax → total, all derived), both statuses, customer
    details, memo, and a collapsed **activity log**.
 3. **Create one** (New invoice) — watch totals recompute live as you type; enter
-   tax as a percent (e.g. `8.5`); submit with a blank field to see inline
-   validation move focus to the first problem.
+   tax as a percent (e.g. `8.5`); leave a required field empty and tab away to
+   see it flag red on blur, or submit to flag all and jump focus to the first.
 4. **Edit it** — change fields or add/remove line items; totals follow.
 5. **The signature decision — void vs. delete.** On a **draft**, the action is
    **Delete** (it never went out). On a **sent/paid** invoice, the only
@@ -90,10 +90,13 @@ corrupt the record.** Every choice below maps to one of those needs.
   kept and an activity entry is written. *Why it fits:* deleting a sent invoice
   destroys the audit trail, so the workflow makes that impossible, not just
   discouraged.
-- **Mistake-resistant forms.** Field-level validation with focus sent to the
-  first error, live-recomputed totals, tax entered as a percent (stored as a
-  fraction), and confirm-to-destroy. *Why it fits:* invoice data is high-stakes
-  and repetitive; the form should make the wrong number hard to enter.
+- **Mistake-resistant forms.** Fields validate on blur (a bad field gets a red
+  border as you leave it) and again on submit, which sends focus to the first
+  error; totals recompute live; tax is entered as a percent (stored as a
+  fraction); destructive actions confirm first; and submit is disabled +
+  re-entry-guarded so an action can't fire twice. *Why it fits:* invoice data is
+  high-stakes and repetitive — the form should make the wrong number hard to
+  enter.
 - **Totals derived, never stored.** Subtotal → discount → tax → total are
   recomputed from the inputs on every render and rounded to cents. *Why it fits:*
   a stored total that silently drifts from its line items is exactly the
@@ -122,12 +125,18 @@ corrupt the record.** Every choice below maps to one of those needs.
   makes the rest of the page `inert`, accessible tables (`scope`, captions), a
   global keyboard focus ring, and WCAG-AA-verified contrast in both light and a
   `prefers-color-scheme` **dark mode** (all color centralized as design tokens
-  in `app/globals.css`).
-- **Testing (Vitest + Testing Library).** ~83 tests covering the logic that must
-  not break — totals math, due-date risk, triage sort, validation, percent
-  conversion, the delete/void invariants, the Server Actions — plus interaction
-  tests (the confirm dialog's resolve/cancel/Escape/focus/inert contract and the
-  form's validation/focus/submit flow) via happy-dom.
+  in `app/globals.css`). Action results post to persistent polite/assertive
+  live regions and name the invoice (e.g. "Invoice INV-2026-0412 voided"), so
+  screen-reader users get the confirmation too.
+- **State coverage.** Calm loading skeletons (route-scoped, so clicking into an
+  invoice keeps you on the list until the detail is ready), an empty state, a
+  runtime DB-error boundary, and confirm-before-destroy.
+- **Testing (Vitest + Testing Library).** 74 tests, scoped to business logic and
+  key interactions — totals math, due-date risk, triage sort, validation,
+  percent conversion, the delete/void invariants, and the Server Actions — plus
+  interaction tests (the confirm dialog's resolve/cancel/Escape/focus/inert
+  contract, and the form's on-blur errors, double-submit guard, and
+  submit/navigate flow) via happy-dom.
 
 ## Data model
 

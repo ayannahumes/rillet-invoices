@@ -3,7 +3,7 @@
 import { useEffect, useRef, type Dispatch, type SetStateAction } from "react";
 import { formatMoney } from "@/lib/format";
 import { num } from "@/lib/parseNumber";
-import { INPUT } from "@/components/fieldStyles";
+import { INPUT, inputClass } from "@/components/fieldStyles";
 
 export type LineRow = {
   key: string;
@@ -96,7 +96,7 @@ export function LineItemsEditor({
                 <div className="sm:col-span-5">
                   <input
                     id={`line-${i}-description`}
-                    className={INPUT}
+                    className={inputClass(!!descErr)}
                     placeholder="Description"
                     aria-label={`Line ${i + 1} description`}
                     value={r.description}
@@ -132,7 +132,7 @@ export function LineItemsEditor({
                 <div className="sm:col-span-2">
                   <input
                     id={`line-${i}-quantity`}
-                    className={`${INPUT} text-right tabular-nums`}
+                    className={inputClass(!!qtyErr, "text-right tabular-nums")}
                     placeholder="Qty"
                     inputMode="decimal"
                     aria-label={`Line ${i + 1} quantity`}
@@ -157,7 +157,7 @@ export function LineItemsEditor({
                 <div className="sm:col-span-2">
                   <input
                     id={`line-${i}-unitPrice`}
-                    className={`${INPUT} text-right tabular-nums`}
+                    className={inputClass(!!priceErr, "text-right tabular-nums")}
                     placeholder="Unit price"
                     inputMode="decimal"
                     aria-label={`Line ${i + 1} unit price`}

@@ -46,6 +46,51 @@ describe("InvoiceForm validation", () => {
   });
 });
 
+describe("InvoiceForm blur validation", () => {
+  it("flags a field (red border + aria-invalid) on blur, not untouched ones", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    const customer = screen.getByLabelText("Customer name");
+    await user.click(customer); // focus the empty required field…
+    await user.tab(); // …then blur it
+
+    expect(
+      await screen.findByText("Customer name is required."),
+    ).toBeInTheDocument();
+    expect(customer).toHaveAttribute("aria-invalid", "true");
+    expect(customer.className).toContain("border-overdue");
+
+    // A field the user hasn't touched yet is not flagged.
+    expect(
+      screen.queryByText("Invoice number is required."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears the error on blur once the field becomes valid", async () => {
+    const user = userEvent.setup();
+    renderForm();
+
+    const customer = screen.getByLabelText("Customer name");
+    await user.click(customer);
+    await user.tab();
+    expect(
+      await screen.findByText("Customer name is required."),
+    ).toBeInTheDocument();
+
+    await user.click(customer);
+    await user.type(customer, "Acme");
+    await user.tab();
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Customer name is required."),
+      ).not.toBeInTheDocument(),
+    );
+    expect(customer).not.toHaveAttribute("aria-invalid");
+  });
+});
+
 describe("InvoiceForm line items", () => {
   it("adds and removes line rows", async () => {
     const user = userEvent.setup();
@@ -78,6 +123,35 @@ describe("InvoiceForm submit", () => {
       quantity: 1,
       unitPrice: 0,
     });
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/invoices/abc"));
+  });
+
+  it("does not double-submit while a submit is in flight", async () => {
+    const user = userEvent.setup();
+    // Action stays pending until we resolve it, so the form stays in-flight.
+    let resolve: ((value: { ok: true; id: string }) => void) | undefined;
+    const action = vi
+      .fn()
+      .mockReturnValue(
+        new Promise<{ ok: true; id: string }>((r) => {
+          resolve = r;
+        }),
+      );
+    renderForm(action);
+
+    await user.type(screen.getByLabelText("Customer name"), "Acme");
+    await user.type(screen.getByLabelText("Invoice number"), "INV-1");
+    await user.type(screen.getByLabelText("Line 1 description"), "Consulting");
+
+    await user.click(screen.getByRole("button", { name: "Create invoice" }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+
+    // Pressing Enter in a field while pending must not fire the action again.
+    await user.type(screen.getByLabelText("Invoice number"), "{Enter}");
+    expect(action).toHaveBeenCalledTimes(1);
+
+    // Settle the in-flight promise so the transition completes cleanly.
+    resolve?.({ ok: true, id: "abc" });
     await waitFor(() => expect(push).toHaveBeenCalledWith("/invoices/abc"));
   });
 });

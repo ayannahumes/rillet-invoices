@@ -10,9 +10,11 @@ import type { InvoiceStatus } from "@/lib/invoices";
 
 export function InvoiceActions({
   id,
+  invoiceNumber,
   status,
 }: {
   id: string;
+  invoiceNumber: string;
   status: InvoiceStatus;
 }) {
   const router = useRouter();
@@ -32,7 +34,7 @@ export function InvoiceActions({
     startTransition(async () => {
       const res = await deleteInvoiceAction(id);
       if (res.ok) {
-        toast("Invoice deleted.", "success");
+        toast(`Invoice ${invoiceNumber} deleted`, "success");
         router.push("/");
       } else {
         toast(res.error, "error");
@@ -50,7 +52,7 @@ export function InvoiceActions({
     startTransition(async () => {
       const res = await voidInvoiceAction(id);
       if (res.ok) {
-        toast("Invoice voided.", "warning");
+        toast(`Invoice ${invoiceNumber} voided`, "warning");
         router.refresh();
       } else {
         toast(res.error, "error");

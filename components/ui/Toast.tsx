@@ -123,6 +123,25 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmToasts, remove]);
 
+  // Shared markup for a single notification. The live-region semantics live on
+  // the always-mounted wrappers below, not here.
+  const renderNotify = (t: NotifyToast) => (
+    <div
+      key={t.id}
+      className={`pointer-events-auto flex w-full max-w-sm items-start justify-between gap-3 rounded-lg border-l-4 px-4 py-3 text-sm shadow-sm ${VARIANT_STYLES[t.variant]}`}
+    >
+      <span>{t.message}</span>
+      <button
+        type="button"
+        onClick={() => remove(t.id)}
+        aria-label="Dismiss"
+        className="shrink-0 opacity-60 hover:opacity-100"
+      >
+        ✕
+      </button>
+    </div>
+  );
+
   return (
     <ToastContext.Provider value={{ toast, confirm }}>
       {/* While a confirm dialog is open the rest of the app is inert, so neither
@@ -131,25 +150,27 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           interactive. */}
       <div inert={confirmToasts.length > 0}>{children}</div>
 
-      {/* Transient notifications — corner stack */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:right-4 sm:items-end">
-        {notifyToasts.map((t) => (
-          <div
-            key={t.id}
-            role={t.variant === "error" ? "alert" : "status"}
-            className={`pointer-events-auto flex w-full max-w-sm items-start justify-between gap-3 rounded-lg border-l-4 px-4 py-3 text-sm shadow-sm ${VARIANT_STYLES[t.variant]}`}
-          >
-            <span>{t.message}</span>
-            <button
-              type="button"
-              onClick={() => remove(t.id)}
-              aria-label="Dismiss"
-              className="shrink-0 opacity-60 hover:opacity-100"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+      {/* Transient notifications — corner stack. Two always-mounted live regions
+          so a screen reader reliably announces text injected into an existing
+          region: polite for success/warning, assertive for errors. aria-atomic
+          is false so only the new toast is read, not the whole stack. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col gap-2 px-4 sm:inset-x-auto sm:right-4">
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="false"
+          className="flex flex-col items-center gap-2 sm:items-end"
+        >
+          {notifyToasts.filter((t) => t.variant !== "error").map(renderNotify)}
+        </div>
+        <div
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="false"
+          className="flex flex-col items-center gap-2 sm:items-end"
+        >
+          {notifyToasts.filter((t) => t.variant === "error").map(renderNotify)}
+        </div>
       </div>
 
       {/* Confirmations — centered blocking overlay */}

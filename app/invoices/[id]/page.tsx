@@ -67,7 +67,11 @@ export default async function InvoiceDetail({
           <Heading className="break-words">{invoice.customerName}</Heading>
           <p className="mt-1 text-faint">{invoice.invoiceNumber}</p>
         </div>
-        <InvoiceActions id={invoice.id} status={invoice.status} />
+        <InvoiceActions
+          id={invoice.id}
+          invoiceNumber={invoice.invoiceNumber}
+          status={invoice.status}
+        />
       </header>
 
       <dl className="mt-8 grid grid-cols-1 gap-x-12 gap-y-6 sm:grid-cols-2">
